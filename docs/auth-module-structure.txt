@@ -1,0 +1,83 @@
+Auth 모듈 구조 및 패턴 설명 (src/auth)
+
+개요
+`src/auth` 폴더는 "인증 도메인"(현재 사용자, 로그인/로그아웃, 권한 확장 지점)을 한 곳에 응집시키기 위한 모듈 경계다. 여기에는 Context Provider, 이를 소비하는 custom hook, 타입, 향후 추가될 도메인별 훅/유틸이 함께 배치된다.
+
+현재 파일 구성
+- src/auth/AuthContext.tsx : Context 생성 + Provider 구현 (상태/비즈니스로직 소유)
+- src/auth/useAuth.ts      : Provider가 공급한 값을 안전하게 꺼내는 소비 훅
+- src/auth/index.ts        : 외부 노출 API(Barrel Export) — import 경로 단순화 및 캡슐화
+
+디자인 패턴 명칭 / 분류
+1) Context Module Pattern
+   - 하나의 모듈에서 Context + Provider + 소비 훅을 함께 정의·제어하는 패턴.
+   - React 커뮤니티(공식 문서 & OSS)에서 널리 쓰이는 관습적 구조.
+2) Provider + Hook Façade 패턴(비공식 용어)
+   - 내부 구현(상태, 로컬스토리지, API 교체)을 Provider에 숨기고, 외부에는 useAuth 라는 얇은 Façade(단일 진입점)를 제공.
+3) Barrel Export 패턴
+   - index.ts에서 필요한 것만 다시 export하여 외부 import 경로 안정화 (`import { useAuth } from '@/auth'`).
+
+왜 이렇게 나누는가 (의미)
+- 응집도(High Cohesion): 인증 관련 소스가 분산되지 않고 한 폴더에 밀집.
+- 낮은 결합도(Low Coupling): 다른 도메인(그리드, 리포트)은 useAuth 의 반환 형태만 의존 → 내부 교체 자유.
+- 캡슐화: 로컬스토리지, 네비게이션, 추후 토큰 갱신 로직이 외부로 새지 않음.
+- 확장 용이: 역할/권한 훅, 세션 갱신 훅, 사용자 프로필 캐싱 등 추가 시 파일만 늘이면 됨.
+- 테스트 편의: useAuth 를 mock 하거나, AuthProvider 를 테스트 전용 래퍼로 교체하기 쉬움.
+
+일반적인 방식인가?
+- YES. 규모/난이도 중간 이상의 React 코드베이스에서 Context 도메인을 "폴더 단위 + Provider + custom hook"으로 묶는 방식은 사실상 표준 관행.
+- 대안(모놀리식 contexts 디렉터리, 전역 store 혼합)보다 명확한 도메인 경계를 제공.
+
+Provider 와 useAuth 관계
+- Provider: 상태 소유(현재 사용자, 로딩, 메서드). 렌더 트리의 상위에서 한 번만 배치.
+- useAuth: Consumer 헬퍼. useContext 호출 + Provider 누락 가드 + 타입 추론 제공.
+- 두 개가 함께 "인증 API 표면"을 형성. 외부는 user/login/logout/loading 만 본다.
+
+왜 Provider 를 contexts/ 가 아니라 auth/ 아래 두었나?
+- 단순 기술 분류(Context)보다 비즈니스/도메인 분류(Auth)가 더 유지보수 친화적.
+- 도메인 단위(그리드, 리포트, 업로드 등)로 확장 시 동일한 패턴 복제 용이: src/grid, src/report ...
+
+Barrel Export(index.ts) 장점
+- import 경로 단일화: import { useAuth } from '@/auth'; (구조 리팩터링해도 외부 변경 최소)
+- 노출 제어: 내부 구현 파일명을 숨기고 공개 API 어떤 것만 노출할지 선택.
+
+향후 확장 예시
+- useAuthorization(permission | role): 권한 기반 UI 제어.
+- useSessionRefresh(): 토큰 만료 5분 전 자동 갱신.
+- useUserPreferences(): 사용자별 테이블/그리드 설정 저장.
+- roles/permissions 타입 도입: interface User { username: string; roles: string[] }
+- authService 추상화: 실제 API 호출 레이어(authService.login) 주입으로 테스트 용이.
+- React Query 연계: 로그인 성공 후 queryClient.invalidateQueries(['me']).
+
+확장 구조 예(미래)
+src/auth/
+  AuthContext.tsx
+  useAuth.ts
+  useAuthorization.ts
+  useSessionRefresh.ts
+  authService.ts          (API 호출 & 토큰 처리)
+  tokenStorage.ts         (localStorage / cookie 추상화)
+  index.ts
+
+리팩터링 포인트 신호
+- AuthContext.tsx 200라인↑ → service/토큰 유틸 분리.
+- 권한 로직 복잡 → useAuthorization 훅 분리.
+- 토큰 갱신/동기화 로직 → useSessionRefresh 훅 추가.
+- 다국어/테마 등 다른 전역 모듈 필요 → 같은 패턴 반복 (src/theme, src/i18n 등).
+
+패턴의 이점 한 줄 요약
+"도메인 단위(인증)의 전역 상태를 Provider로 캡슐화하고, custom hook을 통해 외부 접근을 통합·안정화하는 고응집/저결합 구조".
+
+단계별 적용 전략
+1단계: AuthProvider + useAuth (현재)
+2단계: roles/permissions + useAuthorization
+3단계: 토큰 갱신 + authService 추상화
+4단계: React Query / 캐시 연계 및 다른 도메인 모듈 유사 패턴 확산
+
+피해야 할 안티패턴
+- 모든 Context를 하나의 contexts/index 에 몰아넣고 거대한 Provider 트리로 감싸기.
+- Provider 안에서 필요 이상으로 고빈도 변하는 값/객체 새로 생성 (불필요 리렌더 유발) → useMemo/useCallback 사용.
+- useAuth 훅을 만들지 않고 매 파일에서 useContext + null 체크 반복.
+
+요약
+현재 `src/auth` 구조는 실무 표준에 부합하는 Context Module 패턴 구현이며, 확장성과 유지보수성을 확보하기 위한 기초 설계다. Provider는 공급자, custom hook은 소비자 인터페이스이고 barrel export는 외부 안정 API를 제공한다.

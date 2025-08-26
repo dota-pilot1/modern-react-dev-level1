@@ -1,0 +1,33 @@
+# react-router 의 페이지 설정
+
+아래는 App.tsx에서 react-router를 사용해 페이지를 설정하는 예시입니다:
+
+```tsx
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import Layout from './components/Layout'
+import Home from './pages/Home'
+import IBSheetGrid from './pages/IBSheetGrid'
+
+function App() {
+  return (
+    <Router>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/grid" element={<IBSheetGrid />} />
+        </Routes>
+      </Layout>
+    </Router>
+  )
+}
+
+export default App
+```
+
+## 설명
+- 이 방식은 파일 기반 라우팅이 아니라, 직접 App 컴포넌트에서 라우트 설정을 하는 방식입니다.
+- 각 페이지 컴포넌트(Home, IBSheetGrid 등)를 직접 import해서 Route에 연결합니다.
+- 라우터 설정은 app router(App.tsx)에 들어가 있으며, 별도의 파일 라우터 시스템이 적용된 것이 아닙니다.
+- 보편적인 React 프로젝트에서 많이 쓰이는 구조입니다.
+
+이 구조는 프로젝트의 라우팅을 명확하게 관리할 수 있고, 필요에 따라 라우트와 컴포넌트 연결을 자유롭게 설정할 수 있습니다.

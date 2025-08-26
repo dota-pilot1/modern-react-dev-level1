@@ -1,0 +1,84 @@
+React Hooks & Custom Hooks / TanStack Query Hook 개요
+
+1. Hook 이란?
+- 함수형 컴포넌트에서 React 기능(state, lifecycle, context 등)을 사용할 수 있게 하는 함수.
+- 이름이 use 로 시작 (규칙) → useState, useEffect, useContext 등.
+- 조건문/루프 안에서 호출하지 않고 항상 컴포넌트 상단(또는 다른 hook 내부)에서 동일한 순서로 호출해야 함 (Rules of Hooks).
+
+2. 기본 내장 Hook 분류
+State: useState, useReducer
+Lifecycle/Effect: useEffect, useLayoutEffect
+Context: useContext
+Memoization/성능: useMemo, useCallback, useRef, useTransition, useDeferredValue
+React 18 Concurrency 관련: useId, useSyncExternalStore
+
+3. Custom Hook
+- 내장 Hook 들을 조합해 재사용 가능한 로직을 캡슐화한 함수.
+- 파일 간에 복붙하던 state/효과/구독 코드 묶기.
+- 반환 형태 자유: 값 1개, 객체, 함수 등.
+예) useAuth(), useForm(), usePrevious(), useMediaQuery(), useDebounce()
+
+4. Custom Hook 만들기 규칙
+- 반드시 이름이 use 로 시작 (React 가 훅 호출 여부 파악)
+- 내부에서 다른 Hook 호출 가능 (비훅 일반함수에서 Hook 호출은 금지)
+- 최상위 레벨(조건/루프 밖)에서만 호출되도록 작성
+
+5. 현재 프로젝트 예: useAuth
+- AuthContext 값을 받아 null guard 후 반환.
+- 외부는 user/login/logout/loaidng 구조만 알면 됨 → 내부 인증 구현 교체 용이.
+
+6. Hook vs 일반 유틸 함수
+- Hook: React state/렌더 사이클과 연결 (useState, useEffect 등 사용)
+- 유틸: 순수 계산, React 의존 없음 (테스트 쉽고 어디서나 호출 가능)
+
+7. TanStack Query (React Query) 의 Hook
+- 서버 상태(Server State) 전용 라이브러리: 캐싱, 동기화, 재시도, stale 관리.
+- 핵심 훅: useQuery, useMutation, useInfiniteQuery, useQueries.
+useQuery(key, fetchFn, options)
+  - key: 캐시 식별자 (ex: ['users', page])
+  - fetchFn: Promise 반환 비동기 함수
+  - options: staleTime, enabled, retry 등
+반환: { data, error, isLoading, isFetching, refetch, ... }
+
+예시:
+const usersQuery = useQuery(['users', page], () => fetchUsers(page), { staleTime: 60_000 })
+if (usersQuery.isLoading) return <Spinner />
+usersQuery.data // 캐시된 사용자 목록
+
+useMutation(fetchFn)
+- 상태 변경(Post/Put/Delete) 요청 전용. 낙관적 업데이트, 롤백, invalidateQueries 연계.
+
+8. Custom Hook + TanStack Query 조합
+- 로우한 useQuery 를 그대로 컴포넌트마다 쓰면 중복 → 도메인별 커스텀 훅 래핑.
+예:
+function useUsers(page) {
+  return useQuery(['users', page], () => fetchUsers(page), { staleTime: 30_000 })
+}
+장점: 키/옵션 일관성, 나중에 API 변경 시 한곳 수정.
+
+9. Custom Hook 레이어링 패턴
+UI 컴포넌트 -> (useUsers, useAuth 등 도메인 Hook) -> (React Query / Context / Zustand 내부)
+→ 상위는 데이터 출처 모름(추상화) → 변경 용이성 향상.
+
+10. 상태 유형에 따른 도구 선택
+UI 로컬(모달 open 등): useState / useReducer
+전역 정체(현재 사용자, 테마): Context + custom hook
+서버 데이터(변경 빈도, 캐싱 필요): React Query(useQuery 등)
+복잡한 비서버 전역(드래그, 소켓, 다수 slice): Zustand/Redux Toolkit
+
+11. 흔한 실수
+- 재사용 필요 없는 로직을 성급히 custom hook 화 (불필요 추상화)
+- Hook 내부에서 조건부로 다른 Hook 호출
+- useQuery 키 불안정 (객체/함수 직접 inline → 캐시 미스) → 배열 형태로 안정 키 구성
+
+12. 점진적 확장 전략
+1단계: Context + custom hook (Auth)
+2단계: TanStack Query 도입 (데이터 목록, 그리드 페이징)
+3단계: 커스텀 데이터 훅 도메인화 (useProjects, useReports)
+4단계: 특정 고빈도/복잡 상태만 별도 store(Zustand) 추가
+
+요약
+- Hook = React 기능 사용/조합 단위.
+- Custom Hook = 재사용 로직 캡슐화 (규칙: use 접두사 + 최상위 호출)
+- TanStack Query Hook = 서버 상태 캐싱/동기화 자동화 도구(useQuery 등) → 커스텀 훅으로 래핑해 도메인화.
+- 지금 구조(Provider 분리 + useAuth + 추후 React Query 추가)는 확장 친화적 표준 패턴.

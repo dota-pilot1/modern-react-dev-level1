@@ -1,0 +1,141 @@
+react-router 에서 공통 레이아웃을 다루는 일반적인 방식
+
+1. 현재 프로젝트 방식 (Wrapping 방식)
+App.tsx 에서 <BrowserRouter> 안에 <Layout> 으로 <Routes> 를 감싸는 패턴.
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/grid" element={<IBSheetGrid />} />
+        </Routes>
+      </Layout>
+    </BrowserRouter>
+  )
+}
+
+장점
+- 단순: 바로 레이아웃이 적용됨
+- 작은 앱 또는 초기 실습에 적합
+단점
+- 라우팅 트리(중첩 레이아웃)가 늘어날 때 관리 어려움
+- 특정 하위 라우트에서 레이아웃을 변경/제외하기 불편
+- Suspense / 에러 경계 / loader 같은 기능을 레이아웃 단위로 제어하기 까다로움
+
+2. 권장되는 일반적인 Layout Route + Outlet 패턴
+Layout 자체를 Route 의 element 로 두고, 내부에서 <Outlet /> 으로 자식 라우트를 렌더링.
+
+예시:
+import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom'
+
+function Layout() {
+  return (
+    <div className="min-h-screen">
+      <Header />
+      <main className="p-6">
+        <Outlet /> {/* 자식 라우트가 이 위치에 렌더링 */}
+      </main>
+    </div>
+  )
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route element={<Layout />}> {/* 공통 레이아웃 */}
+          <Route index element={<Home />} />
+          <Route path="grid" element={<IBSheetGrid />} />
+          {/* 향후 추가: <Route path="report" element={<Report />} /> 등 */}
+        </Route>
+        {/* 레이아웃 제외 페이지 (예: 로그인) */}
+        <Route path="login" element={<Login />} />
+      </Routes>
+    </BrowserRouter>
+  )
+}
+
+장점
+- 중첩 라우팅 구조 명확, 레이아웃을 계층적으로 구성 가능
+- 일부 경로만 다른 레이아웃 적용이 쉬움 (ex: AuthLayout, DashboardLayout 등)
+- 에러 경계(ErrorBoundary), 데이터 로더(데이터 라우터), Suspense 경계 등을 레이아웃 단위로 배치하기 유리
+
+3. Data Router (createBrowserRouter) 로의 확장 (v6.4+)
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+
+const router = createBrowserRouter([
+  {
+    element: <Layout />, // 공통 레이아웃
+    children: [
+      { index: true, element: <Home /> },
+      { path: 'grid', element: <IBSheetGrid /> },
+    ],
+    errorElement: <ErrorPage />,
+  },
+  { path: 'login', element: <Login /> },
+])
+
+function App() {
+  return <RouterProvider router={router} />
+}
+
+이점: loader / action / errorElement / defer 등을 활용한 "데이터 먼저" 패턴 가능.
+
+4. 어떤 방식을 선택할까?
+- 학습/프로토타입: Wrapping 방식도 충분
+- 실서비스 / 확장성 요구: Layout Route + Outlet 또는 Data Router 추천
+- 로그인 전/후 UI 구분, 서브 레이아웃(예: /admin/*) 존재: 반드시 Outlet 기반 구조 권장
+
+5. 공통 레이아웃 다룰 때 추가로 알아두면 좋은 것
+- Nested Layout: Route 안에 또 다른 Route(element: <SubLayout />) 구조로 단계적 UI 래핑
+- Code Splitting: React.lazy + Suspense 를 레이아웃 혹은 라우트 단위에 적용
+- Auth Guard: 레이아웃 혹은 ProtectedRoute 컴포넌트에서 권한 체크 후 navigate 처리
+- Breadcrumbs: useMatches() (data router) 로 현재 경로 계층 정보 추출 가능
+- Scroll Restoration: <ScrollRestoration /> (data router) 활용
+- Error Boundary: errorElement 로 각 레이아웃/라우트 단위 에러 UI 처리
+- Pending UI: useNavigation() 으로 전환 상태(loading) 표시
+
+6. 상태/컨텍스트 위치 결정 가이드
+- 전역 전역: App 최상단 (ex: ThemeProvider)
+- 특정 도메인 하위만: 해당 레이아웃 내부 Provider
+- 그리드(IBSheet) 데이터 캐싱: react-query(TanStack Query) 를 루트 혹은 특정 레이아웃에서 QueryClientProvider 로 감싸기
+
+7. 흔한 실수
+- 모든 Route 를 App.tsx 하나에 길게 나열 (규모 커지면 가독성 저하)
+- Layout 안에서 다시 BrowserRouter 중복 사용 (불필요)
+- 라우트 변경 시 스크롤 위치 초기화 안함 → ScrollRestoration 또는 수동 window.scrollTo(0,0)
+
+8. 추천 폴더 구조 (단순형)
+src/
+  components/
+    layout/
+      Layout.tsx
+      DashboardLayout.tsx
+  pages/
+    Home.tsx
+    IBSheetGrid.tsx
+    Login.tsx
+  routes/
+    index.tsx  (Routes 정의 또는 createBrowserRouter 설정)
+  lib/
+    utils.ts
+
+9. IBSheet 연동 시 고려
+- 그리드 컬럼 정의/옵션을 별도 config 파일로 분리 (ex: src/features/grid/config/columns.ts)
+- 데이터 패칭 비동기 로더로 선반영 (data router 사용 시 loader 로 제공)
+- 대용량 데이터: 가상 스크롤 옵션 / 서버 페이징 준비
+
+10. 추가 참고 자료 (검색 키워드 / 공식 URL)
+- React Router Docs: https://reactrouter.com/
+- Layout Routes: https://reactrouter.com/en/main/route/route (Outlet 관련 섹션)
+- Data Routers (Loaders & Actions): https://reactrouter.com/en/main/routers/create-browser-router
+- Error Handling: errorElement
+- TanStack Query (데이터 상태관리): https://tanstack.com/query/latest
+
+요약
+- 현재 Wrapping 패턴은 간단 학습용으로 OK
+- 확장성과 기능(에러/데이터/권한) 고려 시 Layout Route + Outlet 패턴이 일반적
+- Data Router 사용 시 더 강력한 구조 (loader, action, errorElement, useNavigation 등) 활용 가능
+- 프로젝트 초기부터 레이아웃/라우트 계층을 가볍게 설계해두면 유지보수 비용 절감

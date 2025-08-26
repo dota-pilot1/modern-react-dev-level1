@@ -1,0 +1,42 @@
+React Router 기본 사용법 및 설명
+
+1. 설치
+npm install react-router-dom
+
+2. 기본 설정 (App.tsx 예시)
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Home from './pages/Home';
+import About from './pages/About';
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+export default App;
+
+3. 페이지 컴포넌트 만들기
+src/pages/Home.tsx, src/pages/About.tsx 등으로 분리해서 관리
+
+4. Link로 페이지 이동
+import { Link } from 'react-router-dom';
+
+// 예시
+<Link to="/about">About 페이지로 이동</Link>
+
+주요 개념
+- BrowserRouter: HTML5 history API를 사용해 URL을 관리
+- Routes / Route: 경로와 컴포넌트를 매칭
+- Link: SPA 방식으로 페이지 이동
+- useNavigate, useParams, useLocation: 라우팅 관련 훅
+
+요약
+- react-router는 여전히 많이 쓰이고, 익혀두면 다양한 프로젝트에서 활용 가능
+- App.tsx에서 라우터 설정하는 것이 일반적
+- 페이지 컴포넌트와 라우트 매칭, Link로 이동 등 기본 패턴을 익혀두면 좋음

@@ -1,0 +1,91 @@
+유저 정보를 Context API 로 다루는 방법 (AuthContext 패턴)
+
+1. 목적
+- 전역 어디서나 현재 로그인한 사용자(User) 정보와 인증 메서드(login/logout)를 손쉽게 접근.
+- 복잡한 전역 상태관리 도구(Redux/Zustand 등)를 들이기 전 가장 단순하고 읽기 쉬운 기반 제공.
+
+2. 언제 적합한가?
+적합:
+- 현재 사용자 / 권한 / 토큰 등 빈도 낮은 갱신 + 다수 컴포넌트에서 읽기.
+- 초기/중소규모 프로젝트 혹은 기존 레거시에 점진적 React 도입.
+- 인증 흐름(로그인 → 리다이렉트, 로그아웃 → 로그인 페이지 이동) 집중.
+부적합(다른 도구 병행 고려):
+- 초당 갱신되는 실시간 데이터.
+- 다수의 독립 도메인 상태(그리드 필터, 폼 편집 버퍼 등)로 인해 리렌더 최적화 필요.
+
+3. 현재 구현 구조 (이미 프로젝트 적용됨)
+src/
+  contexts/
+    AuthContext.tsx   ← Provider & useAuth 훅
+  pages/
+    Login.tsx         ← 로그인 폼, 성공 시 홈으로 navigate
+  components/
+    LoginLayout.tsx   ← 로그인 전용 레이아웃 (Outlet)
+    Layout.tsx        ← 보호된 구역 공통 레이아웃
+  App.tsx             ← 라우트 트리(ProtectedRoute + Outlet 중첩)
+
+4. 핵심 코드 요약 (`AuthContext.tsx`)
+- 로컬 스토리지에 demo_user 저장/복구.
+- login(username, password): 사용자 객체 생성 → setUser → localStorage 반영.
+- logout(): localStorage 제거 → user null → '/login' 이동.
+- loading: 초기 복구(restore) 진행 중 여부.
+
+5. Provider 적용 (`App.tsx` 내부)
+<AuthProvider> 를 Router 안쪽 최상단에 배치하여 모든 라우트에서 useAuth() 접근 가능.
+ProtectedRoute 컴포넌트는 user 없으면 '/login' 으로 리다이렉트.
+
+6. 사용 패턴
+1) 임의 컴포넌트에서:
+import { useAuth } from '@/contexts/AuthContext';
+const { user, logout } = useAuth();
+2) 조건부 렌더링:
+{user && <span>{user.username}님 환영</span>}
+3) 버튼 액션:
+<button onClick={logout}>로그아웃</button>
+
+7. 확장 포인트
+- 토큰 처리: login 에서 API 응답(accessToken, refreshToken) 저장 → fetch 공통 인터셉터(axios 등) 설정.
+- 토큰 자동 갱신: setTimeout / interval 또는 백오프 로직 추가.
+- 역할/권한: User 에 roles 혹은 permissions 배열 추가 → ProtectedRoute 에서 검사.
+- SSR / 쿠키 기반: 초기 useEffect 대신 서버 주입(initial state) 혹은 쿠키 파싱.
+- React Query 연계: 로그인 성공 후 queryClient.invalidateQueries(['me']); 로 사용자별 데이터 재로딩.
+
+8. 퍼포먼스 고려
+- Context 값이 자주 변할 경우(예: 대시보드 실시간 수치) → 분리: AuthContext = 사용자 정체(Identity)만, 나머지는 React Query 또는 Zustand.
+- Provider 아래 대형 트리 리렌더 최소화: user 객체 구조 얕게, memoization 필요 시 분리.
+
+9. 보안 & 실무 체크리스트
+- localStorage 토큰 저장은 XSS 취약. 가능하면 httpOnly 쿠키 사용.
+- 로그아웃 시 민감 캐시(queryClient.clear()) 도 함께 비우기.
+- 새 탭 동기화: 'storage' 이벤트 리스너로 다른 탭 logout 반영.
+- 만료 처리: 토큰 exp 검사 → 만료 임박 시 silent refresh.
+
+10. 대안 비교 요약
+Context 단독: 단순 / 러닝커브 최소 / 인증 전용 적합.
+Context + React Query: 서버 데이터 캐싱까지 자연스럽게 확장.
+Redux Toolkit: 조직 표준/감사 로그/미들웨어 필요 시.
+Zustand: 빠른 프로토타입 + 세밀한 성능 제어.
+
+11. 마이그레이션 용이성
+useAuth 훅 외부 API 고정( { user, login, logout, loading } ) 유지 → 내부 구현을 Redux/Zustand/RTK Query 로 교체해도 나머지 코드 불변.
+
+12. 간단 ProtectedRoute 패턴 개념
+function ProtectedRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return <Spinner/>;
+  if (!user) return <Navigate to="/login" replace />;
+  return children;
+}
+
+13. 자주 하는 실수
+- Provider 를 Router 밖에 두고 navigate 사용하다 오류 → 반드시 Router 하위(useNavigate 접근 필요) 또는 navigate 를 콜백 인자로 주입.
+- user 상태 변경과 동시에 navigate race condition → login 완료 후 navigate.
+- logout 후 민감한 이전 query 캐시 미정리.
+
+14. 향후 추가 연습 아이디어
+- Refresh 토큰 플로우 구현.
+- Role 기반 메뉴 필터링(navItems.filter).
+- IBSheet 페이지에서 사용자별 컬럼 설정 저장 & 복구 (React Query + localStorage hybrid).
+
+요약
+AuthContext 패턴은 "현재 사용자 + 인증 메서드"를 전역에 안정적으로 노출하는 가장 기본이 되는 실무 친화적 구조. 작은 앱에서는 이것만으로 충분하고, 규모/요구 증가 시 주변에 React Query, RTK, Zustand 등을 점진적으로 붙여 확장하면 된다.
