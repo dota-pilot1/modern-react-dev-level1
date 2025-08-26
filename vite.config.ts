@@ -1,14 +1,15 @@
-/// <reference types="node" />
 import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import path from 'path'
+import tailwindcss from '@tailwindcss/vite'
+import { resolve } from 'path'
 
-// https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    tailwindcss(),
+    // Add React plugin if needed
+  ],
   resolve: {
     alias: {
-      '@': path.resolve(process.cwd(), 'src'),
+      '@': resolve(__dirname, 'src'),
     },
-  },
+  }
 })

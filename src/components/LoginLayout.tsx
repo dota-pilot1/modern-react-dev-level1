@@ -32,11 +32,11 @@ export default function LoginLayout() {
 
       {/* Auth Card */}
       <div className="flex items-center justify-center px-6 py-12 lg:px-12">
-        <div className="w-full max-w-[380px]">
+  <div className="w-full max-w-[480px]">
           <div className="bg-white shadow-sm ring-1 ring-slate-200 rounded-xl p-8">
             <Outlet />
           </div>
-          <div className="mt-10 text-center text-[11px] text-slate-400">
+          <div className="mt-8 text-center text-[11px] text-slate-400">
             <Link to="/" className="hover:text-slate-600 transition-colors">© {new Date().getFullYear()} App</Link>
           </div>
         </div>
