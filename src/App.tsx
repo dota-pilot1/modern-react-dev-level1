@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Layout from './components/Layout'
 import LoginLayout from './components/LoginLayout'
 import IBSheetGridPro from './pages/IBSheetGridPro'
+import IBSheetGrid from './pages/IBSheetGrid'
 import Login from './pages/Login'
 import SignUp from './pages/SignUp'
 import { AuthProvider, useAuth } from './auth'
@@ -29,6 +30,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <IBSheetGridPro />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="ibsheet"
+              element={
+                <ProtectedRoute>
+                  <IBSheetGrid />
                 </ProtectedRoute>
               }
             />

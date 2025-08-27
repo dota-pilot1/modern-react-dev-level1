@@ -6,7 +6,8 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: '🚀 실무급 유저 관리', href: '/' }
+  { label: '� 순수 React 그리드', href: '/' },
+  { label: '�🚀 IBSheet 그리드', href: '/ibsheet' }
 ]
 
 export default function Navigation() {

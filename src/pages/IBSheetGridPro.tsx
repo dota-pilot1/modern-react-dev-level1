@@ -180,10 +180,10 @@ export default function UserManagement() {
       {/* 헤더 */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          🧑‍💼 실무급 유저 관리 시스템
+          � 순수 React 유저 관리 시스템
         </h1>
         <p className="text-gray-600">
-          Advanced React-based User Management with Enhanced Features
+          Pure React Implementation with Advanced Features
         </p>
       </div>
 
