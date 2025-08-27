@@ -6,8 +6,7 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Home', href: '/' },
-  { label: 'IBSheet Grid', href: '/grid' }
+  { label: '🚀 실무급 유저 관리', href: '/' }
 ]
 
 export default function Navigation() {
