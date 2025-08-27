@@ -1,5 +1,5 @@
-import React, { useMemo, useRef, useCallback, useState } from 'react';
-import { IBSheetReact } from '@ibsheet/react';
+import React, { useMemo, useRef, useCallback, useState, useEffect } from 'react';
+import IBSheetLoader from '@ibsheet/loader';
 
 // 기본 IBSheet 예제
 const IBSheetGrid = () => {
@@ -9,166 +9,127 @@ const IBSheetGrid = () => {
   const sheetRef = useRef<any>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // 시트 옵션 설정
-  const sheetOptions = useMemo(() => ({
-    Cfg: {
-      SearchMode: 0,        // 일반 모드
-      CustomScroll: 1,      // 커스텀 스크롤
-      Style: 'IBMR',        // 스타일
-      NoDataMessage: 3,     // 데이터 없을 때 메시지
-      NoDataMiddle: true,   // 메시지 중앙 정렬
-      HeaderMerge: 3,       // 헤더 병합 허용
-      InfoRowConfig: { Visible: false } // 정보 행 숨김
-    },
-    LeftCols: [
-      {
-        Header: ['No', 'No'],
-        Type: 'Int',
-        Name: 'SEQ',
-        Width: 60,
-        Align: 'Center'
-      }
-    ],
-    Cols: [
-      {
-        Header: ['선택', '선택'],
-        Type: 'Bool',
-        Name: 'selected',
-        Width: 60,
-        Align: 'Center'
-      },
-      {
-        Header: ['ID', 'ID'],
-        Type: 'Text',
-        Name: 'id',
-        Width: 80,
-        Align: 'Center',
-        CanEdit: 0
-      },
-      {
-        Header: ['이름', '이름'],
-        Type: 'Text',
-        Name: 'name',
-        Width: 120,
-        Align: 'Left',
-        Required: 1
-      },
-      {
-        Header: ['이메일', '이메일'],
-        Type: 'Text',
-        Name: 'email',
-        Width: 200,
-        Align: 'Left',
-        Required: 1
-      },
-      {
-        Header: ['부서', '부서'],
-        Type: 'Text',
-        Name: 'department',
-        Width: 120,
-        Align: 'Center'
-      },
-      {
-        Header: ['직급', '직급'],
-        Type: 'Text',
-        Name: 'position',
-        Width: 140,
-        Align: 'Center'
-      },
-      {
-        Header: ['입사일', '입사일'],
-        Type: 'Date',
-        Name: 'joinDate',
-        Width: 120,
-        Align: 'Center',
-        Format: 'yyyy-mm-dd'
-      },
-      {
-        Header: ['급여', '급여'],
-        Type: 'Int',
-        Name: 'salary',
-        Width: 100,
-        Align: 'Right',
-        Format: '#,### \\원'
-      },
-      {
-        Header: ['상태', '상태'],
-        Type: 'Enum',
-        Name: 'status',
-        Width: 80,
-        Align: 'Center',
-        Enum: '재직|휴직|퇴사',
-        EnumKeys: '1|2|3'
-      }
-    ]
-  }), []);
-
-  // 샘플 데이터
+  // 샘플 데이터 (초기 렌더용)
   const sampleData = useMemo(() => [
-    { SEQ: 1, id: "1", name: "김철수", email: "kim@example.com", department: "개발팀", position: "시니어 개발자", joinDate: "2020-03-15", salary: 5500, status: "재직" },
-    { SEQ: 2, id: "2", name: "이영희", email: "lee@example.com", department: "디자인팀", position: "UI/UX 디자이너", joinDate: "2021-07-22", salary: 4800, status: "재직" },
-    { SEQ: 3, id: "3", name: "박민수", email: "park@example.com", department: "마케팅팀", position: "마케팅 매니저", joinDate: "2019-11-08", salary: 6200, status: "재직" },
-    { SEQ: 4, id: "4", name: "최지은", email: "choi@example.com", department: "인사팀", position: "인사 담당자", joinDate: "2022-01-10", salary: 4200, status: "재직" },
-    { SEQ: 5, id: "5", name: "정태윤", email: "jung@example.com", department: "개발팀", position: "주니어 개발자", joinDate: "2023-05-03", salary: 3800, status: "재직" }
+    { SEQ: 1, id: '1', name: '김철수', email: 'kim@example.com', department: '개발팀', position: '시니어 개발자', joinDate: '2020-03-15', salary: 5500, status: '재직', selected: 0 },
+    { SEQ: 2, id: '2', name: '이영희', email: 'lee@example.com', department: '디자인팀', position: 'UI/UX 디자이너', joinDate: '2021-07-22', salary: 4800, status: '재직', selected: 0 },
+    { SEQ: 3, id: '3', name: '박민수', email: 'park@example.com', department: '마케팅팀', position: '마케팅 매니저', joinDate: '2019-11-08', salary: 6200, status: '재직', selected: 0 },
+    { SEQ: 4, id: '4', name: '최지은', email: 'choi@example.com', department: '인사팀', position: '인사 담당자', joinDate: '2022-01-10', salary: 4200, status: '재직', selected: 0 },
+    { SEQ: 5, id: '5', name: '정태윤', email: 'jung@example.com', department: '개발팀', position: '주니어 개발자', joinDate: '2023-05-03', salary: 3800, status: '재직', selected: 0 }
   ], []);
 
-  // 시트 인스턴스 생성 시 호출
-  const onInstance = useCallback((sheet: any) => {
-    if (!sheet) return;
-    
-    sheetRef.current = sheet;
-    console.log('IBSheet instance created:', sheet.id);
-    
-    // 이벤트 핸들러 설정
-    sheet.options.Events = {
-      onAfterEdit: (evt: any) => {
-        console.log('Cell edited:', evt);
-      },
-      onBeforeAdd: (evt: any) => {
-        console.log('Before add row:', evt);
-      },
-      onAfterAdd: (evt: any) => {
-        console.log('After add row:', evt);
+  // 시트 옵션 (loader.createSheet 용)
+  const sheetOptions = useMemo(() => ({
+    Cfg: {
+      SearchMode: 0,        // create 후 loadSearchData 사용
+      CustomScroll: 1,
+      Style: 'IBMR',
+      NoDataMessage: 3,
+      NoDataMiddle: true,
+      HeaderMerge: 3,
+      InfoRowConfig: { Visible: false }
+    },
+    LeftCols: [
+      { Header: ['No', 'No'], Type: 'Int', Name: 'SEQ', Width: 60, Align: 'Center' }
+    ],
+    Cols: [
+      { Header: ['선택', '선택'], Type: 'Bool', Name: 'selected', Width: 60, Align: 'Center' },
+      { Header: ['ID', 'ID'], Type: 'Text', Name: 'id', Width: 80, Align: 'Center', CanEdit: 0 },
+      { Header: ['이름', '이름'], Type: 'Text', Name: 'name', Width: 120, Align: 'Left', Required: 1 },
+      { Header: ['이메일', '이메일'], Type: 'Text', Name: 'email', Width: 200, Align: 'Left', Required: 1 },
+      { Header: ['부서', '부서'], Type: 'Text', Name: 'department', Width: 120, Align: 'Center' },
+      { Header: ['직급', '직급'], Type: 'Text', Name: 'position', Width: 140, Align: 'Center' },
+      { Header: ['입사일', '입사일'], Type: 'Date', Name: 'joinDate', Width: 120, Align: 'Center', Format: 'yyyy-mm-dd' },
+      { Header: ['급여', '급여'], Type: 'Int', Name: 'salary', Width: 100, Align: 'Right', Format: '#,### \\원' },
+      { Header: ['상태', '상태'], Type: 'Enum', Name: 'status', Width: 80, Align: 'Center', Enum: '재직|휴직|퇴사', EnumKeys: '1|2|3' }
+    ],
+    Events: {
+      onRenderFirstFinish: (evt: any) => { console.log('초기 렌더 완료', evt.sheet.id); return ''; }
+    }
+  }), []);
+
+  // 시트 생성 (loader 사용)
+  useEffect(() => {
+    let removed = false;
+    const elId = 'basicSheet';
+    // 컨테이너가 아직 없을 수도 있으니 존재 보장
+    const host = document.getElementById(elId);
+    if (!host) return; // 렌더 후 다시 실행됨
+
+    const create = () => {
+      IBSheetLoader.createSheet({
+        el: elId,
+        options: sheetOptions
+      }).then((sheet: any) => {
+        if (removed) return;
+        sheetRef.current = sheet;
+        console.log('시트 생성', sheet.id);
+        sheet.loadSearchData(sampleData); // 초기 데이터 주입
+      }).catch(err => console.error('시트 생성 실패', err));
+    };
+
+    if ((IBSheetLoader as any).isLoaded?.('ibsheet')) {
+      create();
+    } else {
+      IBSheetLoader.once('loaded', (e: any) => {
+        if (e.target?.alias === 'ibsheet') create();
+      });
+    }
+
+    IBSheetLoader.on('error', (e: any) => {
+      console.error('IBSheet 로딩 오류', e);
+    });
+
+    return () => {
+      removed = true;
+      if (sheetRef.current) {
+        IBSheetLoader.removeSheet(sheetRef.current.id);
+        sheetRef.current = null;
       }
     };
-    
-    // 초기 데이터 로드
-    setIsLoading(true);
-    setTimeout(() => {
-      if (sampleData.length > 0) {
-        sheet.loadSearchData(sampleData);
-      }
-      setIsLoading(false);
-    }, 500);
-  }, [sampleData]);
+  }, [sheetOptions, sampleData]);
 
   // 버튼 핸들러들
+  const resequence = (sheet: any) => {
+    const rows = sheet.getDataRows();
+    rows.forEach((r: any, idx: number) => sheet.setValue(r, 'SEQ', idx + 1, 1));
+  };
+
   const handleAddRow = () => {
-    if (sheetRef.current) {
-      const newRow = {
-        SEQ: sheetRef.current.getDataRows().length + 1,
-        id: String(Date.now()),
-        name: '',
-        email: '',
-        department: '',
-        position: '',
-        joinDate: new Date().toISOString().split('T')[0],
-        salary: 0,
-        status: '재직'
-      };
-      sheetRef.current.addRow(newRow);
-    }
+  const sheet = sheetRef.current;
+  if (!sheet) return;
+  sheet.addRow({
+      SEQ: sheet.getDataRows().length + 1,
+      id: String(Date.now()),
+      name: '',
+      email: '',
+      department: '',
+      position: '',
+      joinDate: new Date().toISOString().split('T')[0],
+      salary: 0,
+      status: '재직',
+      selected: 0
+    });
   };
 
   const handleDeleteRow = () => {
-    if (sheetRef.current) {
-      const selectedRows = sheetRef.current.getSelectedRows();
-      if (selectedRows.length > 0) {
-        sheetRef.current.deleteRow(selectedRows);
-      } else {
-        alert('삭제할 행을 선택해주세요.');
-      }
+    const sheet = sheetRef.current;
+    if (!sheet) return;
+    // Bool 체크된 행 가져오기 (API 지원 여부 우선)
+    let rows: any[] = [];
+    if (typeof sheet.getCheckedRows === 'function') {
+      rows = sheet.getCheckedRows('selected') || [];
     }
+    if (!rows.length) {
+      // fallback: 직접 필터
+      rows = sheet.getDataRows().filter((r: any) => sheet.getValue(r, 'selected') === 1 || sheet.getValue(r, 'selected') === true);
+    }
+    if (!rows.length) {
+      alert('체크박스로 삭제할 행을 선택하세요.');
+      return;
+    }
+    sheet.deleteRow(rows);
+    resequence(sheet);
   };
 
   const handleSave = () => {
@@ -180,21 +141,20 @@ const IBSheetGrid = () => {
   };
 
   const handleReload = () => {
-    if (sheetRef.current) {
-      setIsLoading(true);
-      setTimeout(() => {
-        sheetRef.current.loadSearchData(sampleData);
-        setIsLoading(false);
-        alert('데이터를 다시 로드했습니다.');
-      }, 300);
-    }
+    const sheet = sheetRef.current;
+    if (!sheet) return;
+    setIsLoading(true);
+    setTimeout(() => {
+      sheet.loadSearchData(sampleData);
+      setIsLoading(false);
+      resequence(sheet);
+    }, 150);
   };
 
   const handleClear = () => {
-    if (sheetRef.current) {
-      sheetRef.current.loadSearchData([]);
-      alert('데이터를 모두 삭제했습니다.');
-    }
+    const sheet = sheetRef.current;
+    if (!sheet) return;
+    sheet.loadSearchData([]);
   };
 
   return (
@@ -254,11 +214,7 @@ const IBSheetGrid = () => {
             </div>
           </div>
         )}
-        <IBSheetReact
-          options={sheetOptions}
-          instance={onInstance}
-          style={{ width: '100%', height: '500px' }}
-        />
+  <div id="basicSheet" style={{ width: '100%', height: '500px' }} />
       </div>
 
       {/* 사용법 안내 */}
