@@ -30,19 +30,44 @@ const IBSheetGrid: React.FC = () => {
     const sheet = sheetRef.current;
     if (!sheet) return;
     
-    const checkedRows = sheet.getDataRows().filter((r: any) => {
+    // 모든 데이터 행 가져오기
+    const allRows = sheet.getDataRows();
+    console.log('[삭제 시작] 전체 행 수:', allRows.length);
+    
+    // 체크되지 않은 행들만 필터링
+    const remainingData = allRows.filter((r: any) => {
       const v = sheet.getValue(r, 'selected');
-      return v === 1 || v === true || v === '1';
+      const isChecked = v === 1 || v === true || v === '1';
+      console.log(`행 ${sheet.getValue(r, 'id')}: selected=${v}, isChecked=${isChecked}`);
+      return !isChecked; // 체크되지 않은 행만 유지
+    }).map((r: any) => {
+      // 각 행의 데이터를 객체로 변환
+      return {
+        SEQ: sheet.getValue(r, 'SEQ'),
+        id: sheet.getValue(r, 'id'),
+        name: sheet.getValue(r, 'name'),
+        selected: 0 // 체크 상태 초기화
+      };
     });
     
-    if (checkedRows.length === 0) {
+    console.log('[삭제 결과] 남은 행 수:', remainingData.length);
+    
+    if (allRows.length === remainingData.length) {
       alert('삭제할 행을 체크해주세요.');
       return;
     }
     
-    sheet.deleteRow(checkedRows);
+    // 전체 데이터를 새로운 데이터로 교체
+    sheet.loadSearchData(remainingData);
+    
+    // SEQ 재정렬
+    const newRows = sheet.getDataRows();
+    newRows.forEach((r: any, idx: number) => {
+      sheet.setValue(r, 'SEQ', idx + 1, 1);
+    });
+    
     updateCheckedCount(sheet);
-    console.log(`[삭제] ${checkedRows.length}개 행 삭제됨`);
+    console.log(`[삭제 완료] ${allRows.length - remainingData.length}개 행 삭제됨`);
   };
 
   // 새 행 추가
