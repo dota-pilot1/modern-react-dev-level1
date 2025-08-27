@@ -1,0 +1,339 @@
+IBSheet 기본 로직 및 패턴 정리
+=======================================
+
+## 1. 기본 설정 패턴
+
+### 로더 설정 (ibsheet-config.ts)
+```typescript
+import IBSheetLoader from '@ibsheet/loader';
+
+const ibsheetLib = {
+  name: 'ibsheet',
+  baseUrl: 'https://demo.ibsheet.com/ibsheet/v8/samples/customer-sample/assets/ibsheet/',
+  locales: ['en', 'ko'],
+  theme: 'material',
+  plugins: ['excel', 'common', 'dialog'],
+  license: ''
+};
+
+IBSheetLoader.config({ registry: [ibsheetLib] });
+IBSheetLoader.load();
+```
+
+### 시트 옵션 구조
+```typescript
+const options = {
+  Cfg: {
+    SearchMode: 0,      // 0: createSheet data 사용, 1: loadSearchData 필요
+    Style: 'IBMR',      // 테마 스타일
+    BaseUrl: 'CDN주소'   // 리소스 로드 경로
+  },
+  Cols: [
+    { Header: '컬럼명', Type: '타입', Name: '필드명', Width: 너비, Align: '정렬' }
+  ],
+  Events: {
+    onRenderFirstFinish: (evt) => { /* 초기 렌더 완료 */ },
+    onAfterValueChange: (evt) => { /* 값 변경 후 */ }
+  }
+};
+```
+
+## 2. 시트 생성 패턴
+
+### 표준 생성 로직
+```typescript
+useEffect(() => {
+  const elId = 'sheetContainer';
+  if (createdRef.current) return;
+  
+  const create = () => {
+    IBSheetLoader.createSheet({ el: elId, options, data: initialData })
+      .then((sheet) => {
+        createdRef.current = true;
+        sheetRef.current = sheet;
+        // 초기화 로직
+      });
+  };
+
+  if (IBSheetLoader.isLoaded('ibsheet')) {
+    create();
+  } else {
+    IBSheetLoader.once('loaded', (e) => {
+      if (e.target?.alias === 'ibsheet') create();
+    });
+  }
+
+  return () => {
+    if (sheetRef.current) {
+      IBSheetLoader.removeSheet(sheetRef.current.id);
+      sheetRef.current = null;
+      createdRef.current = false;
+    }
+  };
+}, [options, initialData]);
+```
+
+## 3. 컬럼 타입별 설정
+
+### Bool (체크박스) 컬럼
+```typescript
+{ 
+  Header: { Value: '선택', HeaderCheck: 1 }, 
+  Type: 'Bool', 
+  Name: 'selected', 
+  CanEdit: 1,
+  TrueValue: 1,
+  FalseValue: 0 
+}
+```
+
+### Text 컬럼
+```typescript
+{ 
+  Header: '이름', 
+  Type: 'Text', 
+  Name: 'name', 
+  Required: 1,
+  CanEdit: 1 
+}
+```
+
+### Int 컬럼
+```typescript
+{ 
+  Header: '급여', 
+  Type: 'Int', 
+  Name: 'salary', 
+  Format: '#,### \\원',
+  Align: 'Right' 
+}
+```
+
+### Date 컬럼
+```typescript
+{ 
+  Header: '입사일', 
+  Type: 'Date', 
+  Name: 'joinDate', 
+  Format: 'yyyy-mm-dd' 
+}
+```
+
+### Enum (선택형) 컬럼
+```typescript
+{ 
+  Header: '상태', 
+  Type: 'Enum', 
+  Name: 'status', 
+  Enum: '재직|휴직|퇴사',
+  EnumKeys: '1|2|3' 
+}
+```
+
+## 4. 데이터 조작 패턴
+
+### 행 추가
+```typescript
+const handleAddRow = () => {
+  const sheet = sheetRef.current;
+  if (!sheet) return;
+  
+  const newRowData = {
+    SEQ: sheet.getDataRows().length + 1,
+    id: `new_${Date.now()}`,
+    name: '',
+    // ... 기타 필드
+  };
+  
+  sheet.addRow(newRowData);
+};
+```
+
+### 행 삭제 (완전 제거 방식)
+```typescript
+const handleDeleteChecked = () => {
+  const sheet = sheetRef.current;
+  if (!sheet) return;
+  
+  // 체크되지 않은 행들만 필터링
+  const remainingData = sheet.getDataRows()
+    .filter(r => !sheet.getValue(r, 'selected'))
+    .map(r => ({
+      SEQ: sheet.getValue(r, 'SEQ'),
+      id: sheet.getValue(r, 'id'),
+      name: sheet.getValue(r, 'name'),
+      // ... 기타 필드
+    }));
+  
+  // 전체 데이터 교체
+  sheet.loadSearchData(remainingData);
+  
+  // SEQ 재정렬
+  sheet.getDataRows().forEach((r, idx) => {
+    sheet.setValue(r, 'SEQ', idx + 1, 1);
+  });
+};
+```
+
+### 행 삭제 (상태 마킹 방식 - 공식)
+```typescript
+const handleDeleteChecked = () => {
+  const sheet = sheetRef.current;
+  const checkedRows = sheet.getDataRows()
+    .filter(r => sheet.getValue(r, 'selected'));
+  
+  checkedRows.forEach(row => {
+    sheet.deleteRow(row); // 삭제 상태로 마킹
+  });
+};
+```
+
+## 5. 이벤트 처리 패턴
+
+### 주요 이벤트들
+```typescript
+Events: {
+  // 초기 렌더 완료
+  onRenderFirstFinish: (evt) => {
+    console.log('렌더 완료');
+    return '';
+  },
+  
+  // 값 변경 후 (Bool 클릭 포함)
+  onAfterValueChange: (evt) => {
+    if (evt.col === 'selected') {
+      updateCheckedCount(evt.sheet);
+    }
+    return '';
+  },
+  
+  // 셀 클릭
+  onClickCell: (evt) => {
+    console.log('셀 클릭:', evt.row, evt.col);
+    return '';
+  },
+  
+  // 편집 후
+  onAfterEdit: (evt) => {
+    console.log('편집 완료:', evt.value);
+    return '';
+  }
+}
+```
+
+## 6. 상태 관리 패턴
+
+### React와 IBSheet 상태 동기화
+```typescript
+const [checkedCount, setCheckedCount] = useState(0);
+
+const updateCheckedCount = (sheet) => {
+  if (!sheet) return;
+  const rows = sheet.getDataRows();
+  const count = rows.filter(r => {
+    const v = sheet.getValue(r, 'selected');
+    return v === 1 || v === true || v === '1';
+  }).length;
+  setCheckedCount(count);
+};
+```
+
+## 7. 성능 최적화 패턴
+
+### 메모이제이션 활용
+```typescript
+const sampleData = useMemo(() => [
+  { SEQ: 1, id: '1', name: '김철수' }
+  // ...
+], []);
+
+const options = useMemo(() => ({
+  // 옵션 설정
+}), [dependencies]);
+```
+
+### StrictMode 대응
+```typescript
+const createdRef = useRef(false); // 중복 생성 방지
+
+useEffect(() => {
+  if (createdRef.current) return; // 이미 생성됨
+  // 시트 생성 로직
+}, [dependencies]);
+```
+
+## 8. 실무 권장 패턴
+
+### 에러 처리
+```typescript
+IBSheetLoader.createSheet({ el: elId, options, data })
+  .then((sheet) => {
+    // 성공 처리
+  })
+  .catch(err => {
+    console.error('시트 생성 실패', err);
+    // 사용자에게 에러 알림
+  });
+```
+
+### 로딩 상태 관리
+```typescript
+const [isLoading, setIsLoading] = useState(true);
+
+// 시트 생성 시
+setIsLoading(true);
+IBSheetLoader.createSheet(...)
+  .then(() => setIsLoading(false))
+  .catch(() => setIsLoading(false));
+```
+
+### 디버깅 로그
+```typescript
+Events: {
+  onRenderFirstFinish: (evt) => {
+    console.log('[IBSheet] 렌더 완료, 행 수:', evt.sheet.getDataRows().length);
+    return '';
+  }
+}
+```
+
+## 9. 주의사항
+
+1. **이벤트 함수는 반드시 문자열 반환**: `return '';`
+2. **useEffect 의존성 배열 관리**: options 변경 시 재생성 방지
+3. **메모리 누수 방지**: 언마운트 시 removeSheet 호출
+4. **StrictMode 대응**: createdRef로 중복 생성 방지
+5. **BaseUrl 설정**: CDN 리소스 로드를 위해 필수
+
+## 10. 추가 기능 확장
+
+### 검색/필터링
+```typescript
+const handleSearch = (keyword) => {
+  const filteredData = originalData.filter(item => 
+    item.name.includes(keyword)
+  );
+  sheet.loadSearchData(filteredData);
+};
+```
+
+### 정렬
+```typescript
+const handleSort = (field, direction) => {
+  const sortedData = [...currentData].sort((a, b) => {
+    return direction === 'asc' ? 
+      a[field].localeCompare(b[field]) : 
+      b[field].localeCompare(a[field]);
+  });
+  sheet.loadSearchData(sortedData);
+};
+```
+
+### 엑셀 내보내기
+```typescript
+const handleExportExcel = () => {
+  if (sheetRef.current) {
+    sheetRef.current.exportToExcel('데이터.xlsx');
+  }
+};
+```
