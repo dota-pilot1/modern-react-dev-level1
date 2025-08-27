@@ -1,8 +1,11 @@
-import React, { useRef, useMemo, useState } from 'react';
-import { IBSheetReact } from '@ibsheet/react';
+import React, { useRef, useMemo, useState, useEffect } from 'react';
+import IBSheetLoader from '@ibsheet/loader';
+// Import IBSheetInstance type
+import type { IBSheetOptions } from '@ibsheet/loader';
 
 const IBSheetGrid: React.FC = () => {
   const sheetRef = useRef<any>(null);
+  const createdRef = useRef(false);
   const [checkedCount, setCheckedCount] = useState(0);
 
   const sampleData = useMemo(() => [
@@ -73,19 +76,62 @@ const IBSheetGrid: React.FC = () => {
     ],
     Events: {
       onRenderFirstFinish: (evt: any) => { 
-        console.log('[IBSheetReact] render finish rows=', evt.sheet.getDataRows().length); 
+        console.log('[IBSheet] render finish rows=', evt.sheet.getDataRows().length); 
         updateCheckedCount(evt.sheet);
         return ''; 
       },
       onAfterValueChange: (evt: any) => {
         if (evt.col === 'selected') {
-          console.log('[IBSheetReact] checkbox changed');
+          console.log('[IBSheet] checkbox changed');
           updateCheckedCount(evt.sheet);
         }
         return '';
       }
     }
   }), []);
+
+  // 시트 생성
+  useEffect(() => {
+    const elId = 'basicSheet';
+    if (createdRef.current) return;
+    const host = document.getElementById(elId);
+    if (!host) return;
+
+    const create = () => {
+      if (createdRef.current) return;
+      console.log('[IBSheet] createSheet 호출');
+      IBSheetLoader.createSheet({ el: elId, options, data: sampleData })
+        .then((sheet: any) => {
+          createdRef.current = true;
+          sheetRef.current = sheet;
+          console.log('[IBSheet] 시트 생성 성공, rows=', sheet.getDataRows().length);
+          updateCheckedCount(sheet);
+        })
+        .catch(err => {
+          console.error('[IBSheet] 시트 생성 실패', err);
+        });
+    };
+
+    if ((IBSheetLoader as any).isLoaded?.('ibsheet')) {
+      console.log('[IBSheet] 라이브러리 이미 로드됨');
+      create();
+    } else {
+      console.log('[IBSheet] 라이브러리 로드 대기');
+      IBSheetLoader.once('loaded', (e: any) => {
+        console.log('[IBSheet] loaded 이벤트', e.target?.alias);
+        if (e.target?.alias === 'ibsheet') create();
+      });
+      try { (IBSheetLoader as any).load?.('ibsheet'); } catch {}
+    }
+
+    return () => {
+      if (sheetRef.current) {
+        IBSheetLoader.removeSheet(sheetRef.current.id);
+        sheetRef.current = null;
+        createdRef.current = false;
+      }
+    };
+  }, [options, sampleData]);
 
   // 기존 모든 조작 버튼 제거: 데이터 로딩 여부만 검증
 
@@ -114,24 +160,10 @@ const IBSheetGrid: React.FC = () => {
       </div>
 
       {/* IBSheet 컨테이너 */}
+      {/* IBSheet 컨테이너 */}
       <div className="border border-gray-300 rounded-lg overflow-hidden shadow-sm relative" style={{height:'400px'}}>
-        <IBSheetReact
-          options={options as any}
-          sync={false}
-          instance={(sheet) => { 
-            sheetRef.current = sheet; 
-            // 초기 데이터 로드 (data prop 대신 수동 로드)
-            setTimeout(() => {
-              sheet.loadSearchData(sampleData);
-              updateCheckedCount(sheet);
-            }, 100);
-            console.log('[IBSheetReact] instance set'); 
-          }}
-          style={{ width:'100%', height:'100%' }}
-        />
-      </div>
-
-  {/* 안내 제거 */}
+        <div id="basicSheet" style={{ width: '100%', height: '100%' }} />
+      </div>  {/* 안내 제거 */}
     </div>
   );
 };
