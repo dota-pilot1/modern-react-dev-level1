@@ -6,6 +6,7 @@ import Layout from './components/Layout'
 import LoginLayout from './components/LoginLayout'
 import UserGrid from './pages/UserGrid'
 import IBSheetGrid from './pages/IBSheetGrid'
+import IBSheetAdvanced from './pages/IBSheetAdvanced'
 import IBSheetManual from './pages/IBSheetManual'
 import IBSheetAddRowManual from './pages/IBSheetAddRowManual'
 import IBSheetBasicTableManual from './pages/IBSheetBasicTableManual'
@@ -44,6 +45,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <IBSheetGrid />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="ibsheet-advanced"
+              element={
+                <ProtectedRoute>
+                  <IBSheetAdvanced />
                 </ProtectedRoute>
               }
             />

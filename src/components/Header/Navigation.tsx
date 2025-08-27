@@ -6,8 +6,9 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: '� 순수 React 그리드', href: '/' },
-  { label: '🚀 IBSheet 그리드', href: '/ibsheet' }
+  { label: '💻 순수 React 그리드', href: '/' },
+  { label: '🚀 IBSheet 그리드', href: '/ibsheet' },
+  { label: '⭐ IBSheet 고급 기능', href: '/ibsheet-advanced' }
 ];
 
 const manualItems: NavItem[] = [
