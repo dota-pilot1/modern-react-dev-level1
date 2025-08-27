@@ -4,6 +4,7 @@ import Layout from './components/Layout'
 import LoginLayout from './components/LoginLayout'
 import UserGrid from './pages/UserGrid'
 import IBSheetGrid from './pages/IBSheetGrid'
+import IBSheetManual from './pages/IBSheetManual'
 import Login from './pages/Login'
 import SignUp from './pages/SignUp'
 import { AuthProvider, useAuth } from './auth'
@@ -38,6 +39,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <IBSheetGrid />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="ibsheet-manual"
+              element={
+                <ProtectedRoute>
+                  <IBSheetManual />
                 </ProtectedRoute>
               }
             />
