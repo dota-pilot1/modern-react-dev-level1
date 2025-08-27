@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useCallback, useState, useEffect } from 'react';
+import React, { useMemo, useRef, useEffect, useState, useCallback } from 'react';
 import IBSheetLoader from '@ibsheet/loader';
 
 // 기본 IBSheet 예제
@@ -7,7 +7,9 @@ const IBSheetGrid = () => {
   const subTitle = 'IBSheet의 기본적인 사용법을 보여주는 예제입니다.';
   
   const sheetRef = useRef<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const createdRef = useRef(false); // StrictMode 중복 생성 방지
+  const [checkedCount, setCheckedCount] = useState(0);
+  const [totalCount, setTotalCount] = useState(0); // 동적 총 행수
 
   // 샘플 데이터 (초기 렌더용)
   const sampleData = useMemo(() => [
@@ -18,22 +20,39 @@ const IBSheetGrid = () => {
     { SEQ: 5, id: '5', name: '정태윤', email: 'jung@example.com', department: '개발팀', position: '주니어 개발자', joinDate: '2023-05-03', salary: 3800, status: '재직', selected: 0 }
   ], []);
 
-  // 시트 옵션 (loader.createSheet 용)
+  // 원격 라이브러리 baseUrl (404 방지: Cfg.BaseUrl 명시)
+  const remoteBaseUrl = 'https://demo.ibsheet.com/ibsheet/v8/samples/customer-sample/assets/ibsheet/';
+
+  // 체크 카운트 갱신 함수 (다른 이벤트에서도 공통 사용)
+  const updateCheckedCount = useCallback((sheet?: any) => {
+    const s = sheet || sheetRef.current;
+    if (!s) return;
+    const rows = s.getDataRows();
+    const count = rows.filter((r: any) => {
+      const v = s.getValue(r, 'selected');
+      return v === 1 || v === true || v === '1' || v === 'Y' || v === 'T';
+    }).length;
+    setCheckedCount(count);
+    setTotalCount(rows.length);
+  }, []);
+
+  // 시트 옵션 (Data 직접 반영) - 이벤트는 여기서 미리 등록 (create 이후 동적 추가 X)
   const sheetOptions = useMemo(() => ({
     Cfg: {
-      SearchMode: 0,        // create 후 loadSearchData 사용
+      SearchMode: 0,            // loadSearchData / createSheet data 사용
       CustomScroll: 1,
       Style: 'IBMR',
       NoDataMessage: 3,
       NoDataMiddle: true,
       HeaderMerge: 3,
-      InfoRowConfig: { Visible: false }
+      InfoRowConfig: { Visible: false },
+      BaseUrl: remoteBaseUrl
     },
     LeftCols: [
       { Header: ['No', 'No'], Type: 'Int', Name: 'SEQ', Width: 60, Align: 'Center' }
     ],
     Cols: [
-      { Header: ['선택', '선택'], Type: 'Bool', Name: 'selected', Width: 60, Align: 'Center' },
+      { Header: { Value: '선택', HeaderCheck: 1 }, Type: 'Bool', Name: 'selected', Width: 60, Align: 'Center', CanEdit: 1, TrueValue: 1, FalseValue: 0 },
       { Header: ['ID', 'ID'], Type: 'Text', Name: 'id', Width: 80, Align: 'Center', CanEdit: 0 },
       { Header: ['이름', '이름'], Type: 'Text', Name: 'name', Width: 120, Align: 'Left', Required: 1 },
       { Header: ['이메일', '이메일'], Type: 'Text', Name: 'email', Width: 200, Align: 'Left', Required: 1 },
@@ -42,33 +61,62 @@ const IBSheetGrid = () => {
       { Header: ['입사일', '입사일'], Type: 'Date', Name: 'joinDate', Width: 120, Align: 'Center', Format: 'yyyy-mm-dd' },
       { Header: ['급여', '급여'], Type: 'Int', Name: 'salary', Width: 100, Align: 'Right', Format: '#,### \\원' },
       { Header: ['상태', '상태'], Type: 'Enum', Name: 'status', Width: 80, Align: 'Center', Enum: '재직|휴직|퇴사', EnumKeys: '1|2|3' }
-    ],
+  ],
     Events: {
-      onRenderFirstFinish: (evt: any) => { console.log('초기 렌더 완료', evt.sheet.id); return ''; }
+      // 최초 렌더 끝
+      onRenderFirstFinish: (evt: any) => {
+        console.log('초기 렌더 완료', evt.sheet.id);
+        updateCheckedCount(evt.sheet);
+        return '';
+      },
+      // 값이 실제로 변경된 직후 (편집 & Bool 클릭 포함)
+      onAfterValueChange: (evt: any) => {
+        if (evt.col === 'selected') {
+          console.log('onAfterValueChange selected', evt.value);
+          updateCheckedCount(evt.sheet);
+        }
+        return '';
+      },
+      // 셀 클릭 (값 토글 직전일 수 있으므로 비동기 처리)
+      onClickCell: (evt: any) => {
+        if (evt.col === 'selected') {
+          setTimeout(() => updateCheckedCount(evt.sheet), 0);
+        }
+        return '';
+      },
+      // 헤더 체크박스 클릭 (HeaderCheck=1) 후 전체 토글 상황 커버
+      onAfterClick: (evt: any) => {
+        if (evt.col === 'selected' && evt.type === 'Header') {
+          setTimeout(() => updateCheckedCount(evt.sheet), 0);
+        }
+        return '';
+      }
     }
-  }), []);
+  }), [remoteBaseUrl, updateCheckedCount, sampleData]);
 
-  // 시트 생성 (loader 사용)
+  // 시트 생성 (중복 방지)
   useEffect(() => {
-    let removed = false;
     const elId = 'basicSheet';
-    // 컨테이너가 아직 없을 수도 있으니 존재 보장
+    if (createdRef.current) return; // 이미 생성
     const host = document.getElementById(elId);
-    if (!host) return; // 렌더 후 다시 실행됨
+    if (!host) return; // 아직 DOM 없음
 
     const create = () => {
-      IBSheetLoader.createSheet({
-        el: elId,
-        options: sheetOptions
-      }).then((sheet: any) => {
-        if (removed) return;
-        sheetRef.current = sheet;
-        console.log('시트 생성', sheet.id);
-        sheet.loadSearchData(sampleData); // 초기 데이터 주입
-      }).catch(err => console.error('시트 생성 실패', err));
+      if (createdRef.current) return;
+      IBSheetLoader.createSheet({ el: elId, options: sheetOptions, data: sampleData })
+        .then((sheet: any) => {
+          if (createdRef.current) return;
+            createdRef.current = true;
+            sheetRef.current = sheet;
+            console.log('시트 생성 및 데이터 로드 완료', sheet.id);
+            // create 후 1회 보정 (이벤트에서도 수행하지만 안전하게 호출)
+            updateCheckedCount(sheet);
+            setTotalCount(sheet.getDataRows().length);
+        })
+        .catch(err => console.error('시트 생성 실패', err));
     };
 
-    if ((IBSheetLoader as any).isLoaded?.('ibsheet')) {
+    if (typeof (IBSheetLoader as any).isLoaded === 'function' && (IBSheetLoader as any).isLoaded('ibsheet')) {
       create();
     } else {
       IBSheetLoader.once('loaded', (e: any) => {
@@ -76,18 +124,15 @@ const IBSheetGrid = () => {
       });
     }
 
-    IBSheetLoader.on('error', (e: any) => {
-      console.error('IBSheet 로딩 오류', e);
-    });
-
     return () => {
-      removed = true;
+      // 언마운트 시 제거 (StrictMode 두 번 호출 대비 ref 체크)
       if (sheetRef.current) {
         IBSheetLoader.removeSheet(sheetRef.current.id);
         sheetRef.current = null;
+        createdRef.current = false;
       }
     };
-  }, [sheetOptions, sampleData]);
+  }, [sheetOptions]);
 
   // 버튼 핸들러들
   const resequence = (sheet: any) => {
@@ -110,26 +155,28 @@ const IBSheetGrid = () => {
       status: '재직',
       selected: 0
     });
+  updateCheckedCount(sheet);
   };
 
   const handleDeleteRow = () => {
     const sheet = sheetRef.current;
     if (!sheet) return;
-    // Bool 체크된 행 가져오기 (API 지원 여부 우선)
-    let rows: any[] = [];
-    if (typeof sheet.getCheckedRows === 'function') {
-      rows = sheet.getCheckedRows('selected') || [];
-    }
-    if (!rows.length) {
-      // fallback: 직접 필터
-      rows = sheet.getDataRows().filter((r: any) => sheet.getValue(r, 'selected') === 1 || sheet.getValue(r, 'selected') === true);
-    }
+    console.log('[삭제] 현재 데이터 행 수:', sheet.getDataRows().length);
+    const rows = sheet.getDataRows().filter((r: any) => {
+      const raw = sheet.getValue(r, 'selected');
+      const checked = raw === 1 || raw === true || raw === '1' || raw === 'Y' || raw === 'T';
+      console.log(' row', sheet.getValue(r,'id'), 'selected raw=', raw, '->', checked);
+      return checked;
+    });
+    console.log('[삭제] 판단된 체크 행 수:', rows.length);
     if (!rows.length) {
       alert('체크박스로 삭제할 행을 선택하세요.');
       return;
     }
-    sheet.deleteRow(rows);
-    resequence(sheet);
+  sheet.deleteRow(rows);
+  resequence(sheet);
+  console.log('[삭제] 삭제 후 행 수:', sheet.getDataRows().length);
+  updateCheckedCount(sheet);
   };
 
   const handleSave = () => {
@@ -143,18 +190,16 @@ const IBSheetGrid = () => {
   const handleReload = () => {
     const sheet = sheetRef.current;
     if (!sheet) return;
-    setIsLoading(true);
-    setTimeout(() => {
-      sheet.loadSearchData(sampleData);
-      setIsLoading(false);
-      resequence(sheet);
-    }, 150);
+  sheet.loadSearchData(sampleData);
+  resequence(sheet);
+  updateCheckedCount(sheet);
   };
 
   const handleClear = () => {
     const sheet = sheetRef.current;
     if (!sheet) return;
-    sheet.loadSearchData([]);
+  sheet.loadSearchData([]);
+  updateCheckedCount(sheet);
   };
 
   return (
@@ -166,39 +211,35 @@ const IBSheetGrid = () => {
       </div>
 
       {/* 버튼 영역 */}
-      <div className="mb-4 flex flex-wrap gap-2">
+  <div className="mb-2 text-sm text-gray-700">체크된 행: <span className="font-semibold">{checkedCount}</span> / {totalCount}</div>
+  <div className="mb-4 flex flex-wrap gap-2 items-center">
         <button
           onClick={handleAddRow}
           className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-          disabled={isLoading}
         >
           행 추가
         </button>
         <button
           onClick={handleDeleteRow}
           className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-          disabled={isLoading}
         >
           행 삭제
         </button>
         <button
           onClick={handleSave}
           className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
-          disabled={isLoading}
         >
           저장
         </button>
         <button
           onClick={handleReload}
           className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors"
-          disabled={isLoading}
         >
           다시 로드
         </button>
         <button
           onClick={handleClear}
           className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
-          disabled={isLoading}
         >
           전체 삭제
         </button>
@@ -206,15 +247,7 @@ const IBSheetGrid = () => {
 
       {/* IBSheet 컨테이너 */}
       <div className="border border-gray-300 rounded-lg overflow-hidden shadow-sm relative">
-        {isLoading && (
-          <div className="absolute top-0 left-0 right-0 bottom-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-              <p className="text-gray-600">데이터 로딩 중...</p>
-            </div>
-          </div>
-        )}
-  <div id="basicSheet" style={{ width: '100%', height: '500px' }} />
+        <div id="basicSheet" style={{ width: '100%', height: '500px' }} />
       </div>
 
       {/* 사용법 안내 */}
