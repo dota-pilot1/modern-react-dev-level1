@@ -117,11 +117,15 @@ const IBSheetGrid: React.FC = () => {
       <div className="border border-gray-300 rounded-lg overflow-hidden shadow-sm relative" style={{height:'400px'}}>
         <IBSheetReact
           options={options as any}
+          sync={false}
           instance={(sheet) => { 
             sheetRef.current = sheet; 
             // 초기 데이터 로드 (data prop 대신 수동 로드)
-            sheet.loadSearchData(sampleData);
-            console.log('[IBSheetReact] instance set and data loaded'); 
+            setTimeout(() => {
+              sheet.loadSearchData(sampleData);
+              updateCheckedCount(sheet);
+            }, 100);
+            console.log('[IBSheetReact] instance set'); 
           }}
           style={{ width:'100%', height:'100%' }}
         />
