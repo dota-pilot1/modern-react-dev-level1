@@ -15,10 +15,10 @@ export default function UserMenu() {
       <Button
         variant="ghost"
         onClick={() => setIsOpen(!isOpen)}
-        className="relative h-8 w-8 rounded-full"
+        className="relative h-10 w-10 rounded-full p-0"
       >
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-slate-50">
-          <span className="text-xs font-medium">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-slate-50 border border-slate-300 shadow">
+          <span className="text-base font-semibold">
             {userName.charAt(0).toUpperCase()}
           </span>
         </div>
@@ -30,15 +30,15 @@ export default function UserMenu() {
             className="fixed inset-0 z-10" 
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 z-50 mt-2 w-56 rounded-md border border-slate-200 bg-white p-0 shadow-md">
-            <div className="flex items-center justify-start gap-2 p-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-slate-50">
-                <span className="text-xs font-medium">
+          <div className="absolute right-0 z-50 mt-4 w-56 rounded-md border border-slate-200 bg-white p-0 shadow-md">
+            <div className="flex flex-col items-center justify-center gap-2 p-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-900 text-slate-50 border border-slate-300 shadow-lg">
+                <span className="text-xl font-bold">
                   {userName.charAt(0).toUpperCase()}
                 </span>
               </div>
-              <div className="flex flex-col space-y-1 leading-none">
-                <p className="font-medium text-slate-900 text-sm">{userName}</p>
+              <div className="flex flex-col items-center space-y-1 leading-none mt-1">
+                <p className="font-medium text-slate-900 text-base">{userName}</p>
                 <p className="text-xs text-slate-600">{userName}@demo.com</p>
               </div>
             </div>
