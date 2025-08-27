@@ -1,9 +1,8 @@
-import React, { useEffect, useRef, useMemo } from 'react';
-import IBSheetLoader from '@ibsheet/loader';
+import React, { useRef, useMemo } from 'react';
+import { IBSheetReact } from '@ibsheet/react';
 
-const IBSheetGrid = () => {
+const IBSheetGrid: React.FC = () => {
   const sheetRef = useRef<any>(null);
-  const createdRef = useRef(false);
 
   const sampleData = useMemo(() => [
     { SEQ: 1, id: '1', name: '김철수' },
@@ -11,13 +10,11 @@ const IBSheetGrid = () => {
     { SEQ: 3, id: '3', name: '박민수' }
   ], []);
 
-  const remoteBaseUrl = 'https://demo.ibsheet.com/ibsheet/v8/samples/customer-sample/assets/ibsheet/';
-
-  const sheetOptions = useMemo(() => ({
+  const options = useMemo(() => ({
     Cfg: {
       SearchMode: 0,
       Style: 'IBMR',
-      BaseUrl: remoteBaseUrl
+      BaseUrl: 'https://demo.ibsheet.com/ibsheet/v8/samples/customer-sample/assets/ibsheet/'
     },
     Cols: [
       { Header: 'No', Type: 'Int', Name: 'SEQ', Width: 60, Align: 'Center' },
@@ -25,51 +22,9 @@ const IBSheetGrid = () => {
       { Header: '이름', Type: 'Text', Name: 'name', Width: 140, Align: 'Left' }
     ],
     Events: {
-      onRenderFirstFinish: (evt: any) => {
-        console.log('[IBSheet] 렌더 완료 sheetId=', evt.sheet.id, 'rowCount=', evt.sheet.getDataRows().length);
-        return '';
-      }
+      onRenderFirstFinish: (evt: any) => { console.log('[IBSheetReact] render finish', evt.sheet.id, 'rows=', evt.sheet.getDataRows().length); return ''; }
     }
-  }), [remoteBaseUrl]);
-
-  useEffect(() => {
-    const elId = 'basicSheet';
-    if (createdRef.current) return;
-    const host = document.getElementById(elId);
-    if (!host) return;
-
-    const create = () => {
-      if (createdRef.current) return;
-      console.log('[IBSheet] createSheet 호출');
-      IBSheetLoader.createSheet({ el: elId, options: sheetOptions, data: sampleData })
-        .then((sheet: any) => {
-          createdRef.current = true;
-          sheetRef.current = sheet;
-          console.log('[IBSheet] 시트 생성 성공 id=', sheet.id, 'rows=', sheet.getDataRows().length);
-        })
-        .catch(err => {
-          console.error('[IBSheet] 시트 생성 실패', err);
-        });
-    };
-
-    if ((IBSheetLoader as any).isLoaded?.('ibsheet')) {
-      console.log('[IBSheet] 라이브러리 이미 로드됨');
-      create();
-    } else {
-      console.log('[IBSheet] 라이브러리 로드 대기');
-      IBSheetLoader.once('loaded', (e: any) => {
-        console.log('[IBSheet] loaded 이벤트', e.target?.alias);
-        if (e.target?.alias === 'ibsheet') create();
-      });
-      try { (IBSheetLoader as any).load?.('ibsheet'); } catch {}
-    }
-
-    return () => {
-      if (sheetRef.current) IBSheetLoader.removeSheet(sheetRef.current.id);
-      sheetRef.current = null;
-      createdRef.current = false;
-    };
-  }, [sheetOptions, sampleData]);
+  }), []);
 
   // 기존 모든 조작 버튼 제거: 데이터 로딩 여부만 검증
 
@@ -81,8 +36,13 @@ const IBSheetGrid = () => {
       </div>
 
       {/* IBSheet 컨테이너 */}
-      <div className="border border-gray-300 rounded-lg overflow-hidden shadow-sm relative">
-        <div id="basicSheet" style={{ width: '100%', height: '500px' }} />
+      <div className="border border-gray-300 rounded-lg overflow-hidden shadow-sm relative" style={{height:'400px'}}>
+        <IBSheetReact
+          options={options as any}
+          data={sampleData}
+          instance={(sheet) => { sheetRef.current = sheet; console.log('[IBSheetReact] instance set'); }}
+          style={{ width:'100%', height:'100%' }}
+        />
       </div>
 
   {/* 안내 제거 */}
