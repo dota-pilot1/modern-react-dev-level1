@@ -1,7 +1,6 @@
 import React, { useRef, useMemo, useState, useEffect } from 'react';
 import IBSheetLoader from '@ibsheet/loader';
 // Import IBSheetInstance type
-import type { IBSheetOptions } from '@ibsheet/loader';
 
 const IBSheetGrid: React.FC = () => {
   const sheetRef = useRef<any>(null);
