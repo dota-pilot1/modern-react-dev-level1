@@ -1,389 +1,293 @@
-import { useState, useRef, useEffect } from 'react'
+import React, { useMemo, useRef, useCallback, useState } from 'react';
+import { IBSheetReact } from '@ibsheet/react';
 
-// IBSheet React 컴포넌트를 동적으로 import
-const IBSheetReact = (() => {
-  try {
-    const { IBSheetReact } = require('@ibsheet/react')
-    return IBSheetReact
-  } catch (error) {
-    console.warn('IBSheet React 컴포넌트를 불러올 수 없습니다:', error)
-    return null
-  }
-})()
+// 기본 IBSheet 예제
+const IBSheetGrid = () => {
+  const title = '기본 예제';
+  const subTitle = 'IBSheet의 기본적인 사용법을 보여주는 예제입니다.';
+  
+  const sheetRef = useRef<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-// 사용자 데이터 타입
-interface User {
-  id: string
-  name: string
-  email: string
-  department: string
-  position: string
-  joinDate: string
-  salary: number
-  status: string
-  selected?: boolean
-}
-
-export default function IBSheetGrid() {
-  const sheetRef = useRef<any>(null)
-  const [status, setStatus] = useState('IBSheet React 컴포넌트를 확인 중입니다...')
-  const [isIBSheetAvailable, setIsIBSheetAvailable] = useState(false)
-  const [fallbackData, setFallbackData] = useState<User[]>([])
+  // 시트 옵션 설정
+  const sheetOptions = useMemo(() => ({
+    Cfg: {
+      SearchMode: 0,        // 일반 모드
+      CustomScroll: 1,      // 커스텀 스크롤
+      Style: 'IBMR',        // 스타일
+      NoDataMessage: 3,     // 데이터 없을 때 메시지
+      NoDataMiddle: true,   // 메시지 중앙 정렬
+      HeaderMerge: 3,       // 헤더 병합 허용
+      InfoRowConfig: { Visible: false } // 정보 행 숨김
+    },
+    LeftCols: [
+      {
+        Header: ['No', 'No'],
+        Type: 'Int',
+        Name: 'SEQ',
+        Width: 60,
+        Align: 'Center'
+      }
+    ],
+    Cols: [
+      {
+        Header: ['선택', '선택'],
+        Type: 'Bool',
+        Name: 'selected',
+        Width: 60,
+        Align: 'Center'
+      },
+      {
+        Header: ['ID', 'ID'],
+        Type: 'Text',
+        Name: 'id',
+        Width: 80,
+        Align: 'Center',
+        CanEdit: 0
+      },
+      {
+        Header: ['이름', '이름'],
+        Type: 'Text',
+        Name: 'name',
+        Width: 120,
+        Align: 'Left',
+        Required: 1
+      },
+      {
+        Header: ['이메일', '이메일'],
+        Type: 'Text',
+        Name: 'email',
+        Width: 200,
+        Align: 'Left',
+        Required: 1
+      },
+      {
+        Header: ['부서', '부서'],
+        Type: 'Text',
+        Name: 'department',
+        Width: 120,
+        Align: 'Center'
+      },
+      {
+        Header: ['직급', '직급'],
+        Type: 'Text',
+        Name: 'position',
+        Width: 140,
+        Align: 'Center'
+      },
+      {
+        Header: ['입사일', '입사일'],
+        Type: 'Date',
+        Name: 'joinDate',
+        Width: 120,
+        Align: 'Center',
+        Format: 'yyyy-mm-dd'
+      },
+      {
+        Header: ['급여', '급여'],
+        Type: 'Int',
+        Name: 'salary',
+        Width: 100,
+        Align: 'Right',
+        Format: '#,### \\원'
+      },
+      {
+        Header: ['상태', '상태'],
+        Type: 'Enum',
+        Name: 'status',
+        Width: 80,
+        Align: 'Center',
+        Enum: '재직|휴직|퇴사',
+        EnumKeys: '1|2|3'
+      }
+    ]
+  }), []);
 
   // 샘플 데이터
-  const sampleData: User[] = [
-    { id: "1", name: "김철수", email: "kim@example.com", department: "개발팀", position: "시니어 개발자", joinDate: "2020-03-15", salary: 5500, status: "재직" },
-    { id: "2", name: "이영희", email: "lee@example.com", department: "디자인팀", position: "UI/UX 디자이너", joinDate: "2021-07-22", salary: 4800, status: "재직" },
-    { id: "3", name: "박민수", email: "park@example.com", department: "마케팅팀", position: "마케팅 매니저", joinDate: "2019-11-08", salary: 6200, status: "재직" },
-    { id: "4", name: "최지은", email: "choi@example.com", department: "인사팀", position: "인사 담당자", joinDate: "2022-01-10", salary: 4200, status: "재직" },
-    { id: "5", name: "정태윤", email: "jung@example.com", department: "개발팀", position: "주니어 개발자", joinDate: "2023-05-03", salary: 3800, status: "재직" }
-  ]
+  const sampleData = useMemo(() => [
+    { SEQ: 1, id: "1", name: "김철수", email: "kim@example.com", department: "개발팀", position: "시니어 개발자", joinDate: "2020-03-15", salary: 5500, status: "재직" },
+    { SEQ: 2, id: "2", name: "이영희", email: "lee@example.com", department: "디자인팀", position: "UI/UX 디자이너", joinDate: "2021-07-22", salary: 4800, status: "재직" },
+    { SEQ: 3, id: "3", name: "박민수", email: "park@example.com", department: "마케팅팀", position: "마케팅 매니저", joinDate: "2019-11-08", salary: 6200, status: "재직" },
+    { SEQ: 4, id: "4", name: "최지은", email: "choi@example.com", department: "인사팀", position: "인사 담당자", joinDate: "2022-01-10", salary: 4200, status: "재직" },
+    { SEQ: 5, id: "5", name: "정태윤", email: "jung@example.com", department: "개발팀", position: "주니어 개발자", joinDate: "2023-05-03", salary: 3800, status: "재직" }
+  ], []);
 
-  useEffect(() => {
-    // IBSheet 라이브러리와 컴포넌트 가용성 확인
-    const checkIBSheet = () => {
-      const isLibraryLoaded = typeof window !== 'undefined' && (window as any).IBSheet
-      const isComponentAvailable = IBSheetReact !== null
-      
-      if (isLibraryLoaded && isComponentAvailable) {
-        setIsIBSheetAvailable(true)
-        setStatus('IBSheet가 성공적으로 로드되었습니다!')
+  // 시트 인스턴스 생성 시 호출
+  const onInstance = useCallback((sheet: any) => {
+    if (!sheet) return;
+    
+    sheetRef.current = sheet;
+    console.log('IBSheet instance created:', sheet.id);
+    
+    // 이벤트 핸들러 설정
+    sheet.options.Events = {
+      onAfterEdit: (evt: any) => {
+        console.log('Cell edited:', evt);
+      },
+      onBeforeAdd: (evt: any) => {
+        console.log('Before add row:', evt);
+      },
+      onAfterAdd: (evt: any) => {
+        console.log('After add row:', evt);
+      }
+    };
+    
+    // 초기 데이터 로드
+    setIsLoading(true);
+    setTimeout(() => {
+      if (sampleData.length > 0) {
+        sheet.loadSearchData(sampleData);
+      }
+      setIsLoading(false);
+    }, 500);
+  }, [sampleData]);
+
+  // 버튼 핸들러들
+  const handleAddRow = () => {
+    if (sheetRef.current) {
+      const newRow = {
+        SEQ: sheetRef.current.getDataRows().length + 1,
+        id: String(Date.now()),
+        name: '',
+        email: '',
+        department: '',
+        position: '',
+        joinDate: new Date().toISOString().split('T')[0],
+        salary: 0,
+        status: '재직'
+      };
+      sheetRef.current.addRow(newRow);
+    }
+  };
+
+  const handleDeleteRow = () => {
+    if (sheetRef.current) {
+      const selectedRows = sheetRef.current.getSelectedRows();
+      if (selectedRows.length > 0) {
+        sheetRef.current.deleteRow(selectedRows);
       } else {
-        setIsIBSheetAvailable(false)
-        setStatus('IBSheet 라이브러리를 찾을 수 없습니다. Fallback 테이블을 사용합니다.')
-        setFallbackData(sampleData.map(user => ({ ...user, selected: false })))
+        alert('삭제할 행을 선택해주세요.');
       }
     }
+  };
 
-    // 즉시 확인
-    checkIBSheet()
-    
-    // 3초 후 다시 확인 (라이브러리 로딩 대기)
-    const timer = setTimeout(checkIBSheet, 3000)
-    
-    return () => clearTimeout(timer)
-  }, [])
-
-  // IBSheet 설정
-  const options = {
-    Cfg: {
-      SearchMode: 2,
-      HeaderMerge: 3,
-      InfoRowConfig: { Visible: false }
-    },
-    Cols: [
-      { Header: "선택", Type: "Bool", Name: "selected", Width: 60, Align: "Center" },
-      { Header: "ID", Type: "Text", Name: "id", Width: 80, Align: "Center", CanEdit: 0 },
-      { Header: "이름", Type: "Text", Name: "name", Width: 120, Align: "Left", Required: 1 },
-      { Header: "이메일", Type: "Text", Name: "email", Width: 200, Align: "Left", Required: 1 },
-      { Header: "부서", Type: "Text", Name: "department", Width: 120, Align: "Center" },
-      { Header: "직급", Type: "Text", Name: "position", Width: 140, Align: "Center" },
-      { Header: "입사일", Type: "Date", Name: "joinDate", Width: 120, Align: "Center", Format: "yyyy-mm-dd" },
-      { Header: "급여", Type: "Int", Name: "salary", Width: 100, Align: "Right", Format: "#,###" },
-      { Header: "상태", Type: "Enum", Name: "status", Width: 80, Align: "Center", Enum: "재직|휴직|퇴사" }
-    ]
-  }
-
-  // IBSheet 인스턴스 생성 시 호출
-  const getInstance = (sheet: any) => {
-    console.log('IBSheet 인스턴스가 생성되었습니다:', sheet)
-    setStatus('IBSheet가 성공적으로 초기화되었습니다!')
-  }
-
-  // 액션 함수들
-  const addUser = () => {
-    if (isIBSheetAvailable && sheetRef.current) {
-      const newId = Date.now().toString()
-      const newUser = {
-        id: newId,
-        name: "새 사용자",
-        email: `user${newId}@example.com`,
-        department: "개발팀",
-        position: "신입사원",
-        joinDate: new Date().toISOString().split('T')[0],
-        salary: 3500,
-        status: "재직",
-        selected: false
-      }
-      
-      if (sheetRef.current.addRow) {
-        sheetRef.current.addRow(newUser)
-        setStatus("새 사용자가 추가되었습니다.")
-      }
-    } else {
-      // Fallback: 테이블에 직접 추가
-      const newId = Date.now().toString()
-      const newUser: User = {
-        id: newId,
-        name: "새 사용자",
-        email: `user${newId}@example.com`,
-        department: "개발팀",
-        position: "신입사원",
-        joinDate: new Date().toISOString().split('T')[0],
-        salary: 3500,
-        status: "재직",
-        selected: false
-      }
-      
-      setFallbackData(prev => [...prev, newUser])
-      setStatus("새 사용자가 추가되었습니다. (Fallback 모드)")
+  const handleSave = () => {
+    if (sheetRef.current) {
+      const saveData = sheetRef.current.getSaveJson();
+      console.log('저장 데이터:', saveData);
+      alert('저장되었습니다. (콘솔 확인)');
     }
-  }
+  };
 
-  const deleteSelected = () => {
-    if (isIBSheetAvailable && sheetRef.current) {
-      try {
-        const allData = sheetRef.current.getDataRows ? sheetRef.current.getDataRows() : []
-        const selectedRows = allData.filter((row: any) => row.selected)
-        
-        if (selectedRows.length === 0) {
-          setStatus("삭제할 행을 선택해주세요.")
-          return
-        }
-        
-        selectedRows.forEach((row: any) => {
-          if (sheetRef.current?.deleteRow) {
-            sheetRef.current.deleteRow(row)
-          }
-        })
-        
-        setStatus(`${selectedRows.length}개의 행이 삭제되었습니다.`)
-      } catch (error) {
-        setStatus("선택된 행을 삭제하는 중 오류가 발생했습니다.")
-      }
-    } else {
-      // Fallback: 선택된 항목 삭제
-      const selectedCount = fallbackData.filter(user => user.selected).length
-      if (selectedCount === 0) {
-        setStatus("삭제할 행을 선택해주세요.")
-        return
-      }
-      
-      setFallbackData(prev => prev.filter(user => !user.selected))
-      setStatus(`${selectedCount}개의 행이 삭제되었습니다. (Fallback 모드)`)
+  const handleReload = () => {
+    if (sheetRef.current) {
+      setIsLoading(true);
+      setTimeout(() => {
+        sheetRef.current.loadSearchData(sampleData);
+        setIsLoading(false);
+        alert('데이터를 다시 로드했습니다.');
+      }, 300);
     }
-  }
+  };
 
-  const saveData = () => {
-    if (isIBSheetAvailable && sheetRef.current) {
-      const allData = sheetRef.current.getDataRows ? sheetRef.current.getDataRows() : []
-      console.log('저장할 데이터:', allData)
-      setStatus(`${allData.length}개의 행이 저장되었습니다.`)
-    } else {
-      console.log('저장할 데이터:', fallbackData)
-      setStatus(`${fallbackData.length}개의 행이 저장되었습니다. (Fallback 모드)`)
+  const handleClear = () => {
+    if (sheetRef.current) {
+      sheetRef.current.loadSearchData([]);
+      alert('데이터를 모두 삭제했습니다.');
     }
-  }
-
-  const exportExcel = () => {
-    setStatus("Excel 내보내기 기능을 실행했습니다.")
-    console.log('Excel 내보내기 요청')
-  }
-
-  const toggleSelection = (id: string) => {
-    setFallbackData(prev => prev.map(user => 
-      user.id === id ? { ...user, selected: !user.selected } : user
-    ))
-  }
-
-  // 컨테이너 스타일
-  const containerStyle = {
-    width: '100%',
-    height: '500px',
-    border: '1px solid #ccc',
-    borderRadius: '8px'
-  }
-
-  // Fallback 테이블 렌더링
-  const renderFallbackTable = () => (
-    <div className="border border-gray-300 rounded-lg overflow-hidden" style={{ height: '500px' }}>
-      <div className="overflow-auto h-full">
-        <table className="w-full border-collapse">
-          <thead className="bg-gray-50 sticky top-0">
-            <tr>
-              <th className="border border-gray-300 px-3 py-2 text-center w-16">선택</th>
-              <th className="border border-gray-300 px-3 py-2 text-center w-20">ID</th>
-              <th className="border border-gray-300 px-3 py-2 text-left w-32">이름</th>
-              <th className="border border-gray-300 px-3 py-2 text-left w-48">이메일</th>
-              <th className="border border-gray-300 px-3 py-2 text-center w-32">부서</th>
-              <th className="border border-gray-300 px-3 py-2 text-center w-36">직급</th>
-              <th className="border border-gray-300 px-3 py-2 text-center w-32">입사일</th>
-              <th className="border border-gray-300 px-3 py-2 text-right w-24">급여</th>
-              <th className="border border-gray-300 px-3 py-2 text-center w-20">상태</th>
-            </tr>
-          </thead>
-          <tbody>
-            {fallbackData.map((user) => (
-              <tr key={user.id} className="hover:bg-gray-50">
-                <td className="border border-gray-300 px-3 py-2 text-center">
-                  <input 
-                    type="checkbox" 
-                    checked={user.selected || false}
-                    onChange={() => toggleSelection(user.id)}
-                    className="rounded"
-                  />
-                </td>
-                <td className="border border-gray-300 px-3 py-2 text-center">{user.id}</td>
-                <td className="border border-gray-300 px-3 py-2">{user.name}</td>
-                <td className="border border-gray-300 px-3 py-2">{user.email}</td>
-                <td className="border border-gray-300 px-3 py-2 text-center">{user.department}</td>
-                <td className="border border-gray-300 px-3 py-2 text-center">{user.position}</td>
-                <td className="border border-gray-300 px-3 py-2 text-center">{user.joinDate}</td>
-                <td className="border border-gray-300 px-3 py-2 text-right">{user.salary.toLocaleString()}</td>
-                <td className="border border-gray-300 px-3 py-2 text-center">{user.status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  )
+  };
 
   return (
-    <div className="max-w-7xl mx-auto p-6 bg-white rounded-lg shadow-lg">
+    <div className="max-w-7xl mx-auto p-6 bg-white">
       {/* 헤더 */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          🚀 IBSheet React 컴포넌트 {!isIBSheetAvailable && '(Fallback 모드)'}
-        </h1>
-        <p className="text-gray-600">
-          {isIBSheetAvailable 
-            ? '공식 @ibsheet/react 패키지를 사용한 실제 IBSheet 그리드'
-            : 'IBSheet 라이브러리 없이 작동하는 대체 테이블'
-          }
-        </p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">{title}</h1>
+        <p className="text-gray-600">{subTitle}</p>
       </div>
 
-      {/* IBSheet 라이브러리 상태 안내 */}
-      <div className={`mb-6 p-4 rounded-lg border ${
-        isIBSheetAvailable 
-          ? 'bg-green-50 border-green-200' 
-          : 'bg-yellow-50 border-yellow-200'
-      }`}>
-        <h3 className={`font-semibold mb-2 ${
-          isIBSheetAvailable ? 'text-green-800' : 'text-yellow-800'
-        }`}>
-          {isIBSheetAvailable ? '✅ IBSheet 라이브러리 로드됨' : '⚠️ IBSheet 라이브러리 필요'}
-        </h3>
-        <p className={`text-sm mb-2 ${
-          isIBSheetAvailable ? 'text-green-700' : 'text-yellow-700'
-        }`}>
-          {isIBSheetAvailable 
-            ? 'IBSheet React 컴포넌트가 정상적으로 작동하고 있습니다.'
-            : 'IBSheet 라이브러리를 찾을 수 없어 대체 테이블을 사용합니다.'
-          }
-        </p>
-        {!isIBSheetAvailable && (
-          <p className="text-xs text-yellow-600">
-            index.html에 IBSheet 스크립트를 추가하거나 @ibsheet/loader를 사용하세요.
-          </p>
-        )}
-      </div>
-
-      {/* 액션 버튼 */}
-      <div className="mb-6 flex flex-wrap gap-3">
-        <button 
-          onClick={addUser}
+      {/* 버튼 영역 */}
+      <div className="mb-4 flex flex-wrap gap-2">
+        <button
+          onClick={handleAddRow}
           className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+          disabled={isLoading}
         >
-          ➕ 사용자 추가
+          행 추가
         </button>
-        <button 
-          onClick={deleteSelected}
+        <button
+          onClick={handleDeleteRow}
           className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+          disabled={isLoading}
         >
-          ❌ 선택 삭제
+          행 삭제
         </button>
-        <button 
-          onClick={saveData}
+        <button
+          onClick={handleSave}
           className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+          disabled={isLoading}
         >
-          💾 데이터 저장
+          저장
         </button>
-        <button 
-          onClick={exportExcel}
-          className="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 transition-colors"
+        <button
+          onClick={handleReload}
+          className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors"
+          disabled={isLoading}
         >
-          📊 Excel 내보내기
+          다시 로드
+        </button>
+        <button
+          onClick={handleClear}
+          className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+          disabled={isLoading}
+        >
+          전체 삭제
         </button>
       </div>
 
-      {/* IBSheet React 컴포넌트 또는 Fallback 테이블 */}
-      <div className="mb-4">
-        {isIBSheetAvailable && IBSheetReact ? (
-          <IBSheetReact
-            ref={sheetRef}
-            options={options}
-            data={sampleData.map(user => ({ ...user, selected: false }))}
-            style={containerStyle}
-            instance={getInstance}
-            sync={false}
-          />
-        ) : (
-          renderFallbackTable()
+      {/* IBSheet 컨테이너 */}
+      <div className="border border-gray-300 rounded-lg overflow-hidden shadow-sm relative">
+        {isLoading && (
+          <div className="absolute top-0 left-0 right-0 bottom-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+              <p className="text-gray-600">데이터 로딩 중...</p>
+            </div>
+          </div>
         )}
-      </div>
-
-      {/* 기능 설명 */}
-      <div className="mb-4 p-4 bg-green-50 rounded-lg border border-green-200">
-        <h3 className="font-semibold text-green-800 mb-2">
-          ✅ {isIBSheetAvailable ? '공식 IBSheet React 기능' : 'Fallback 테이블 기능'}
-        </h3>
-        <ul className="text-sm text-green-700 space-y-1">
-          {isIBSheetAvailable ? (
-            <>
-              <li>• IBSheetReact 컴포넌트 사용</li>
-              <li>• 셀 편집: 더블클릭으로 직접 편집</li>
-              <li>• 정렬 및 필터링: 컬럼 헤더 기능</li>
-              <li>• 행 선택: 첫 번째 컬럼 체크박스</li>
-              <li>• Excel 내보내기: 실제 파일 다운로드</li>
-              <li>• 키보드 네비게이션 지원</li>
-            </>
-          ) : (
-            <>
-              <li>• HTML 테이블 기반 대체 구현</li>
-              <li>• 행 선택: 체크박스 클릭</li>
-              <li>• 데이터 추가/삭제 기능</li>
-              <li>• 기본적인 그리드 레이아웃</li>
-              <li>• IBSheet 없이도 작동</li>
-            </>
-          )}
-        </ul>
+        <IBSheetReact
+          options={sheetOptions}
+          instance={onInstance}
+          style={{ width: '100%', height: '500px' }}
+        />
       </div>
 
       {/* 사용법 안내 */}
-      <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-        <h3 className="font-semibold text-blue-800 mb-2">📖 사용법</h3>
-        <div className="text-sm text-blue-700 space-y-2">
-          {isIBSheetAvailable ? (
-            <>
-              <p><strong>1. IBSheet 라이브러리:</strong> 정상적으로 로드됨</p>
-              <p><strong>2. 셀 편집:</strong> 셀을 더블클릭하여 직접 편집</p>
-              <p><strong>3. 행 선택:</strong> 첫 번째 컬럼의 체크박스 클릭</p>
-              <p><strong>4. 정렬:</strong> 컬럼 헤더 클릭으로 정렬</p>
-              <p><strong>5. 키보드:</strong> 화살표 키로 셀 이동, Enter로 편집</p>
-            </>
-          ) : (
-            <>
-              <p><strong>1. IBSheet 설치:</strong> index.html에 IBSheet 스크립트 추가 필요</p>
-              <p><strong>2. 현재 상태:</strong> 대체 테이블로 기본 기능 제공</p>
-              <p><strong>3. 행 선택:</strong> 체크박스 클릭으로 선택/해제</p>
-              <p><strong>4. 데이터 관리:</strong> 추가/삭제 버튼 사용</p>
-              <p><strong>5. 개발 목적:</strong> IBSheet 라이브러리 없이도 개발 가능</p>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* 상태 바 */}
-      <div className="p-3 bg-gray-100 rounded text-sm">
-        <div className="flex justify-between items-center">
-          <span className="text-gray-700 font-medium">{status}</span>
-          <span className="text-xs text-gray-500">
-            {isIBSheetAvailable ? '@ibsheet/react v1.0.3' : 'Fallback 모드'}
-          </span>
+      <div className="mt-6 bg-gray-50 rounded-lg p-4">
+        <h3 className="text-lg font-semibold text-gray-900 mb-3">사용법 안내</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
+          <div>
+            <h4 className="font-medium mb-2">기본 조작</h4>
+            <ul className="space-y-1">
+              <li>• 셀 더블클릭: 편집 모드</li>
+              <li>• 체크박스: 행 선택</li>
+              <li>• 헤더 클릭: 정렬</li>
+              <li>• 열 경계 드래그: 크기 조정</li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-medium mb-2">컬럼 유형</h4>
+            <ul className="space-y-1">
+              <li>• Text: 일반 텍스트</li>
+              <li>• Date: 날짜 (yyyy-mm-dd)</li>
+              <li>• Int: 정수 (급여)</li>
+              <li>• Enum: 선택형 (상태)</li>
+              <li>• Bool: 체크박스 (선택)</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
+
+export default IBSheetGrid;

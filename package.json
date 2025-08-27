@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
+    "@ibsheet/interface": "^1.0.0",
+    "@ibsheet/loader": "^1.2.0",
     "@ibsheet/react": "^1.0.3",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-label": "^2.1.7",

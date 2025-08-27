@@ -1,0 +1,28 @@
+import IBSheetLoader from '@ibsheet/loader';
+
+const ibsheetLib = {
+  name: 'ibsheet',
+  baseUrl: 'https://demo.ibsheet.com/ibsheet/v8/samples/customer-sample/assets/ibsheet/',
+  locales: ['en', 'ko'],
+  theme: 'material',
+  plugins: ['excel', 'common', 'dialog'],
+  license: ''
+}
+
+// 로더 config
+IBSheetLoader.config({
+  registry: [ibsheetLib]
+});
+
+IBSheetLoader.load();
+
+// 로더 이벤트
+IBSheetLoader.once('loaded', (evt) => {
+  const target = evt.target;
+  if (target.alias === ibsheetLib.name) {
+    let IBSheet = IBSheetLoader.getIBSheetStatic();
+    console.log('IBSheet loaded successfully:', IBSheet);
+  }
+});
+
+export default IBSheetLoader;
