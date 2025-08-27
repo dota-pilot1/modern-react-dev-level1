@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useEffect, useState, useCallback } from 'react';
 import IBSheetLoader from '@ibsheet/loader';
+import { ensureIBSheetConfigured } from '../config/ibsheet-config';
 
 // 기본 IBSheet 예제
 const IBSheetGrid = () => {
@@ -96,6 +97,8 @@ const IBSheetGrid = () => {
 
   // 시트 생성 (중복 방지)
   useEffect(() => {
+  // 로더 보장
+  ensureIBSheetConfigured();
     const elId = 'basicSheet';
     if (createdRef.current) return; // 이미 생성
     const host = document.getElementById(elId);
@@ -116,12 +119,14 @@ const IBSheetGrid = () => {
         .catch(err => console.error('시트 생성 실패', err));
     };
 
+    // 명시적으로 로드 시도 (이미 로드되어 있으면 즉시 resolve)
     if (typeof (IBSheetLoader as any).isLoaded === 'function' && (IBSheetLoader as any).isLoaded('ibsheet')) {
       create();
     } else {
       IBSheetLoader.once('loaded', (e: any) => {
         if (e.target?.alias === 'ibsheet') create();
       });
+      try { (IBSheetLoader as any).load?.('ibsheet'); } catch { /* ignore */ }
     }
 
     return () => {
