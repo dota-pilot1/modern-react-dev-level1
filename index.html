@@ -6,14 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>IBSheet Practice - Vite + React + TS</title>
     
-    <!-- IBSheet CSS -->
-    <link rel="stylesheet" href="/ibsheet/css/default/main.css" />
+  <!-- IBSheet CSS 제거: 로더(BaseUrl CDN)에서 동적 주입 -->
   </head>
   <body>
     <div id="root"></div>
     
-    <!-- IBSheet JavaScript Libraries -->
-    <script src="/ibsheet/ibsheet.js"></script>
+  <!-- 로컬 ibsheet.js 제거: @ibsheet/loader 가 CDN에서 로드 -->
     
     <script type="module" src="/src/main.tsx"></script>
   </body>
