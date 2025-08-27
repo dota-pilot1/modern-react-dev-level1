@@ -5,6 +5,9 @@ import LoginLayout from './components/LoginLayout'
 import UserGrid from './pages/UserGrid'
 import IBSheetGrid from './pages/IBSheetGrid'
 import IBSheetManual from './pages/IBSheetManual'
+import IBSheetAddRowManual from './pages/IBSheetAddRowManual'
+import IBSheetBasicTableManual from './pages/IBSheetBasicTableManual'
+import IBSheetCellUpdateManual from './pages/IBSheetCellUpdateManual'
 import Login from './pages/Login'
 import SignUp from './pages/SignUp'
 import { AuthProvider, useAuth } from './auth'
@@ -47,6 +50,30 @@ function App() {
               element={
                 <ProtectedRoute>
                   <IBSheetManual />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="ibsheet-add-row-manual"
+              element={
+                <ProtectedRoute>
+                  <IBSheetAddRowManual />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="ibsheet-basic-table-manual"
+              element={
+                <ProtectedRoute>
+                  <IBSheetBasicTableManual />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="ibsheet-cell-update-manual"
+              element={
+                <ProtectedRoute>
+                  <IBSheetCellUpdateManual />
                 </ProtectedRoute>
               }
             />
