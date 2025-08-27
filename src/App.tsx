@@ -2,7 +2,7 @@ import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/Layout'
 import LoginLayout from './components/LoginLayout'
-import IBSheetGridPro from './pages/IBSheetGridPro'
+import UserGrid from './pages/UserGrid'
 import IBSheetGrid from './pages/IBSheetGrid'
 import Login from './pages/Login'
 import SignUp from './pages/SignUp'
@@ -29,7 +29,7 @@ function App() {
               index
               element={
                 <ProtectedRoute>
-                  <IBSheetGridPro />
+                  <UserGrid />
                 </ProtectedRoute>
               }
             />
