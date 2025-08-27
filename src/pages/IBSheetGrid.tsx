@@ -134,6 +134,17 @@ const IBSheetGrid = () => {
     };
   }, [sheetOptions]);
 
+  // 데이터 누락 시 안전 재주입 (예: 로더 레이스 컨디션)
+  useEffect(() => {
+    const sheet = sheetRef.current;
+    if (!sheet) return;
+    if (sheet.getDataRows().length === 0 && sampleData.length) {
+      console.warn('[Fallback] 초기 데이터가 비어 재로딩합니다.');
+      sheet.loadSearchData(sampleData);
+      updateCheckedCount(sheet);
+    }
+  }, [sampleData, updateCheckedCount]);
+
   // 버튼 핸들러들
   const resequence = (sheet: any) => {
     const rows = sheet.getDataRows();
