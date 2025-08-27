@@ -1,3 +1,5 @@
+import IBSheetVsAgGridManual from './pages/IBSheetVsAgGridManual'
+import IBSheetAllCheckManual from './pages/IBSheetAllCheckManual'
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/Layout'
@@ -74,6 +76,22 @@ function App() {
               element={
                 <ProtectedRoute>
                   <IBSheetCellUpdateManual />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="ibsheet-all-check-manual"
+              element={
+                <ProtectedRoute>
+                  <IBSheetAllCheckManual />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="ibsheet-vs-aggrid-manual"
+              element={
+                <ProtectedRoute>
+                  <IBSheetVsAgGridManual />
                 </ProtectedRoute>
               }
             />

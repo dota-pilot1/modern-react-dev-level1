@@ -14,7 +14,9 @@ const manualItems: NavItem[] = [
   { label: '📖 IBSheet 기본 메뉴얼', href: '/ibsheet-manual' },
   { label: '📋 IBSheet 테이블/조회 메뉴얼', href: '/ibsheet-basic-table-manual' },
   { label: '➕ IBSheet 행 추가 메뉴얼', href: '/ibsheet-add-row-manual' },
-  { label: '✏️ IBSheet 셀 업데이트 메뉴얼', href: '/ibsheet-cell-update-manual' }
+  { label: '✏️ IBSheet 셀 업데이트 메뉴얼', href: '/ibsheet-cell-update-manual' },
+  { label: '☑️ IBSheet 전체 체크/해제 메뉴얼', href: '/ibsheet-all-check-manual' },
+  { label: '⚖️ IBSheet vs AG Grid 비교', href: '/ibsheet-vs-aggrid-manual' }
 ];
 
 export default function Navigation() {
